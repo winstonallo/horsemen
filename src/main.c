@@ -23,8 +23,9 @@ walk(const char *const base_path, void (*f)(const char *)) {
         snprintf(full_path, sizeof(full_path), "%s/%s", base_path, file->d_name);
         if (file->d_type == DT_DIR) {
             walk(full_path, f);
+        } else {
+            f(full_path);
         }
-        f(full_path);
     }
 
     return 0;
