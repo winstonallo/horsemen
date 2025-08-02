@@ -1,0 +1,6 @@
+-Iinc
+-Ilibft/inc
+-Wall
+-Wextra
+-Werror
+-DBLOCK_SIZE=4096
