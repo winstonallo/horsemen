@@ -48,6 +48,10 @@ clean:
 	$(MAKE) -C $(LIBFT_DIR) clean
 	rm -rf $(OBJ_DIR)
 
+infect: src/infect.asm
+	nasm -f elf64 -o infect.o src/infect.asm
+	ld -o infect infect.o
+
 fclean: clean
 	$(MAKE) -C $(LIBFT_DIR) fclean
 	rm -f $(NAME) $(PAYLOAD_NAME)
