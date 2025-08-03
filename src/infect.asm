@@ -124,16 +124,16 @@ elf64_ident_check:
 
     mov rcx, 7
     lea rsi, [rdi + EI_PAD]
-check_padding:
-    cmp BYTE [rsi], 0
-    jne not_elf
-    inc rsi
-    loop check_padding
+    check_padding:
+        cmp BYTE [rsi], 0
+        jne not_elf
+        inc rsi
+        loop check_padding
+    ; check_padding
 
     ret
 ; elf64_ident_check
 
-; get_base_address
 get_base_address:
     mov rsi, O_RDONLY
     lea rdi, [rel proc_self_maps]
@@ -155,59 +155,60 @@ get_base_address:
     mov rdx, 1
     lea rsi, [rsp]
     mov edi, eax
-read_proc_map:
-    mov rax, SYS_READ
-    syscall
+    read_proc_map:
+        mov rax, SYS_READ
+        syscall
 
-    cmp eax, 1
-    jl error
+        cmp eax, 1
+        jl error
 
-    cmp BYTE [rsp], '-'
-    je break
-    inc r10b
-    mov r8b, BYTE [rsp]
+        cmp BYTE [rsp], '-'
+        je break
+        inc r10b
+        mov r8b, BYTE [rsp]
 
-    cmp r8b, '9'
-    jle num
-alpha:
-    sub r8b, 'a' - 10
-    jmp load
-num:
-    sub r8b, '0'
-load:
-    shl rbx, 4
-    or rbx, r8
-    add rsp, 1
-    lea rsi, [rsp]
-    jmp read_proc_map
-break:
-    sub sp, r10w
-    add sp, 16
+        cmp r8b, '9'
+        jle num
+    ; read_proc_map
+    alpha:
+        sub r8b, 'a' - 10
+        jmp load
+    ; alpha
+    num:
+        sub r8b, '0'
+    ; num
+    load:
+        shl rbx, 4
+        or rbx, r8
+        add rsp, 1
+        lea rsi, [rsp]
+        jmp read_proc_map
+    ; load
+    break:
+        sub sp, r10w
+        add sp, 16
 
-    pop rdi
-    mov rax, SYS_CLOSE
-    syscall
-    cmp eax, 0
-    jl error
-
+        pop rdi
+        mov rax, SYS_CLOSE
+        syscall
+        cmp eax, 0
+        jl error
+    ; break
     ret
 ; get_base_address
 
-; error
 error:
     mov rax, SYS_EXIT
     mov rdi, 1
     syscall
 ; error
 
-; success
 success:
     mov rax, SYS_EXIT
     mov rdi, 0
     syscall
 ; success
 
-; not_elf
 not_elf:
     add rsp, 16
     mov rax, SYS_WRITE
@@ -219,7 +220,6 @@ not_elf:
     jmp success
 ; not_elf
 
-; not_64_bit
 not_64_bit:
     add rsp, 16
     mov rax, SYS_WRITE
