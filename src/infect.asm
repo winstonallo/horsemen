@@ -108,34 +108,26 @@ _start:
     syscall
 
 elf64_ident_check:
-    cmp BYTE [rdi + EI_MAG0], ELFMAG0
+    ; magic numbers in header (0x7f + 'ELF')
+    mov eax, DWORD [rdi]
+    cmp eax, (ELFMAG3 << 24) | (ELFMAG2 << 16) | (ELFMAG1 << 8) | (ELFMAG0)
     jne not_elf
-    cmp BYTE [rdi + EI_MAG1], ELFMAG1
-    jne not_elf
-    cmp BYTE [rdi + EI_MAG2], ELFMAG2
-    jne not_elf
-    cmp BYTE [rdi + EI_MAG3], ELFMAG3
-    jne not_elf
+
     cmp BYTE [rdi + EI_CLASS], ELFCLASS64
     jne not_64_bit
     cmp BYTE [rdi + EI_DATA], ELFDATANONE
     je not_elf
     cmp BYTE [rdi + EI_VERSION], EV_CURRENT
     jne not_elf
-    cmp BYTE [rdi + EI_PAD], 0
+
+    mov rcx, 7
+    lea rsi, [rdi + EI_PAD]
+check_padding:
+    cmp BYTE [rsi], 0
     jne not_elf
-    cmp BYTE [rdi + EI_PAD + 1], 0
-    jne not_elf
-    cmp BYTE [rdi + EI_PAD + 2], 0
-    jne not_elf
-    cmp BYTE [rdi + EI_PAD + 3], 0
-    jne not_elf
-    cmp BYTE [rdi + EI_PAD + 4], 0
-    jne not_elf
-    cmp BYTE [rdi + EI_PAD + 5], 0
-    jne not_elf
-    cmp BYTE [rdi + EI_PAD + 6], 0
-    jne not_elf
+    inc rsi
+    loop check_padding
+
     ret
 
 error:
