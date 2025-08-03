@@ -1,2 +1,6 @@
 obj
 Famine
+*.o
+a.out
+decrypt.asm
+infect
