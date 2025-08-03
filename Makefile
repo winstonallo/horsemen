@@ -8,7 +8,10 @@ LIBFT_DIR = libft
 BLOCK_SIZE=$(shell stat -fc %s .)
 
 SRCS = \
-	main.c
+	main.c \
+	file.c \
+	elf_section.c \
+	elf_segment.c \
 
 OBJS = $(addprefix $(OBJ_DIR)/, $(SRCS:.c=.o))
 
@@ -21,14 +24,14 @@ LIBFT = $(LIBFT_DIR)/libft.a
 LIBFT_FLAGS = -L$(LIBFT_DIR) -lft
 
 CC = cc
-CFLAGS = -Wall -Wextra -Werror -I$(INC_DIR) -I$(LIBFT_DIR)/inc -DBLOCK_SIZE=$(BLOCK_SIZE)
-LDFLAGS = $(LIBFT_FLAGS)
+CFLAGS =  -I$(INC_DIR) -I$(LIBFT_DIR)/inc -DBLOCK_SIZE=$(BLOCK_SIZE) -fPIC -static
+DFLAGS = $(LIBFT_FLAGS)
 
 all: $(LIBFT) $(NAME)
 
 $(NAME): $(OBJS) $(LIBFT)
 	$(CC) $(CFLAGS) $(OBJS) -o $(NAME) $(LDFLAGS)
-	strip $(NAME)
+	# strip $(NAME)
 
 $(LIBFT): $(LIBFT_SRCS)
 	$(MAKE) -C $(LIBFT_DIR)
