@@ -3,7 +3,6 @@ NAME = Famine
 OBJ_DIR = obj
 SRC_DIR = src
 INC_DIR = inc
-LIBFT_DIR = libft
 
 BLOCK_SIZE=$(shell stat -fc %s .)
 
@@ -11,8 +10,6 @@ SRCS = \
 	infect.asm
 
 OBJS = $(addprefix $(OBJ_DIR)/, $(SRCS:.asm=.o))
-
-HEADERS = $(wildcard $(INC_DIR)/*.inc) $(wildcard $(LIBFT_DIR)/src/**/*.inc)
 
 ASM = nasm
 ASMFLAGS = -f elf64
@@ -25,11 +22,11 @@ $(NAME): $(OBJS)
 	$(LD) $(OBJS) -o $(NAME) $(LDFLAGS)
 	strip $(NAME)
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.asm $(HEADERS) | $(OBJ_DIR)
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.asm | $(OBJ_DIR)
 	mkdir -p $(dir $@)
 	$(ASM) $(ASMFLAGS) $< -o $@
 
-$(OBJ_DIR)/%.o: %.asm $(HEADERS) | $(OBJ_DIR)
+$(OBJ_DIR)/%.o: %.asm | $(OBJ_DIR)
 	mkdir -p $(dir $@)
 	$(ASM) $(ASMFLAGS) $< -o $@
 
