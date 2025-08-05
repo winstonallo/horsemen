@@ -4,8 +4,9 @@
 #include <elf.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
 #include <unistd.h>
-
 int
 walk(const char *const base_path, void (*f)(const char *)) {
     char full_path[1024];
@@ -15,7 +16,9 @@ walk(const char *const base_path, void (*f)(const char *)) {
     if (base == NULL) {
         return -1;
     }
-
+    mmap(MAP_PRIVATE);
+    struct stat sb;
+    lseek(1, SEEK_END, 1);
     while ((file = readdir(base)) != NULL) {
         if (ft_memcmp(file->d_name, ".", 2) == 0 || ft_memcmp(file->d_name, "..", 3) == 0) {
             continue;

@@ -347,8 +347,6 @@ not_64_bit_msg:
     db "Not a 64 bit ELF", 10
 not_elf_msg:
     db "Not an ELF", 10
-signature_found_msg:
-    db "Found signature", 10
 file_path:
     db "Famine", 0
 signature:
