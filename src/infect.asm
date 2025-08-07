@@ -1,4 +1,7 @@
 global _start
+
+%define STUB_SIZE (_end - _start)
+
 ; syscalls
 SYS_READ:       equ 0
 SYS_WRITE:      equ 1
