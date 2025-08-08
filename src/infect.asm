@@ -242,7 +242,7 @@ get_base_address:
     mov rdx, 1
     lea rsi, [rsp]
     mov edi, eax
-    read_proc_map:
+    .read_proc_map:
         mov rax, SYS_READ
         syscall
 
@@ -250,28 +250,28 @@ get_base_address:
         jl exit
 
         cmp BYTE [rsp], '-'
-        je break
+        je .break
         inc r10b
         mov r8b, BYTE [rsp]
 
         cmp r8b, '9'
-        jle num
+        jle .num
     ; read_proc_map
-    alpha:
+    .alpha:
         sub r8b, 'a' - 10
-        jmp load
+        jmp .load
     ; alpha
-    num:
+    .num:
         sub r8b, '0'
     ; num
-    load:
+    .load:
         shl rbx, 4
         or rbx, r8
         add rsp, 1
         lea rsi, [rsp]
-        jmp read_proc_map
+        jmp .read_proc_map
     ; load
-    break:
+    .break:
         sub sp, r10w
         add rsp, 16
 
