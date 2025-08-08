@@ -168,7 +168,7 @@ _start:
         mov rax, SYS_OPEN
         syscall
         test rax, rax
-        jl .next_directory
+        jl .close_directory
         mov data(dir_fd), rax
     .read_directory:
         mov rdx, DIRENT_ARR_SIZE
