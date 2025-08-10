@@ -1,7 +1,9 @@
 global _start
 section .text
 
-%define data(x)       [(rbp - data_size) + data.%+x]
+%define data(x) [(rbp - data_size) + data.%+x]
+%define TRUE    1
+%define FALSE   0
 
 STUB_SIZE:      equ (_end - _start)
 DIRENT_ARR_SIZE:    equ 1024
@@ -103,15 +105,15 @@ struc Elf64_Ehdr
 endstruc
 
 struc	Elf64_Phdr
-.p_type			resd	1
-.p_flags		resd	1
-.p_offset		resq	1
-.p_vaddr		resq	1
-.p_paddr		resq	1
-.p_filesz		resq	1
-.p_memsz		resq	1
-.p_align		resq	1
-	endstruc
+    .p_type			resd	1
+    .p_flags		resd	1
+    .p_offset		resq	1
+    .p_vaddr		resq	1
+    .p_paddr		resq	1
+    .p_filesz		resq	1
+    .p_memsz		resq	1
+    .p_align		resq	1
+endstruc
 
 struc Elf64_Shdr
     .sh_name        resd 1
