@@ -179,7 +179,7 @@ _start:
     push rbp
     mov rbp, rsp
     ; NASM automatically creates a <name>_size constant for strucs
-    sub rbp, data_size
+    sub rsp, data_size
 
     call get_base_address
     push rax
@@ -248,7 +248,6 @@ _start:
 
     add rsp, data_size
     pop rbp
-
     pop rax
     pop rdx
     pop rcx
