@@ -68,7 +68,7 @@ SEEK_CUR:   equ 1
 SEEK_END:   equ 2
 
 ; ELF
-; e_ident
+; e_ident (size of e_ident)
 EI_NIDENT:      equ 16
 
 ELF64_E_IDENT_LSB: equ 0x00010102464c457f
@@ -323,17 +323,14 @@ is_elf64:
     xor rax, rax
     cmp QWORD [rdi + 8], rax
     jnz .return
-    mov rdx, 0x00010102464c457f
+    mov rdx, ELF64_E_IDENT_LSB
     cmp QWORD [rdi], rdx
     jz .continue
-    mov rdx, 0x03010102464c457f
-    cmp QWORD [rdi], rdx
-    jnz .return
-    .continue:
-        mov rdx, 0x00000001003e0003
+   .continue:
+        mov rdx, ELF64_E_IDENT_MSB_ET_DYN
         cmp QWORD [rdi + 16], rdx
-        jz .ok
-        mov rdx, 0x00000001003e0002
+        jz .true
+        mov rdx, ELF64_E_IDENT_MSB_ET_EXEC
         cmp QWORD [rdi + 16], rdx
         jnz .return
     .true:
