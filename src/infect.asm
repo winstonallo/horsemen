@@ -381,7 +381,7 @@ find_executable_segment:
         test rcx, rcx
         jz .not_found
 
-        mov rax, 0x0000000500000001
+        mov rax, ELF64_EXECUTABLE_SEGMENT
         cmp rax, QWORD [rdi]
         jnz .next_segment
 
