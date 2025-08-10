@@ -240,7 +240,7 @@ _start:
     pop rax
     pop rdx
     pop rcx
-    pop rdi
+    pop rsi
     pop rdi
     jmp rax
 
