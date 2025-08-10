@@ -70,21 +70,10 @@ SEEK_END:   equ 2
 ; ELF
 ; e_ident
 EI_NIDENT:      equ 16
-EI_MAG0:        equ 0
-ELFMAG0:        equ 0x7f
-EI_MAG1:        equ 1
-ELFMAG1:        equ 'E'
-EI_MAG2:        equ 2
-ELFMAG2:        equ 'L'
-EI_MAG3:        equ 3
-ELFMAG3:        equ 'F'
-EI_CLASS:       equ 4
-ELFCLASS64:     equ 2
-EI_DATA:        equ 5
-ELFDATANONE:    equ 0
-EI_VERSION:     equ 6
-EV_CURRENT:     equ 1
-EI_PAD:         equ 9
+
+ELF64_E_IDENT_LSB: equ 0x00010102464c457f
+ELF64_E_IDENT_MSB_ET_DYN: equ 0x00000001003e0003
+ELF64_E_IDENT_MSB_ET_EXEC: equ 0x00000001003e0002
 
 ; e_type
 ET_NONE:    equ 0
@@ -347,7 +336,7 @@ is_elf64:
         mov rdx, 0x00000001003e0002
         cmp QWORD [rdi + 16], rdx
         jnz .return
-    .ok:
+    .true:
         mov rax, TRUE
     .return:
         ret
