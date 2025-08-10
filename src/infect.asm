@@ -452,10 +452,6 @@ try_open:
     .error:
         jmp rcx
 
-; size_t log(rdi=char*, rsi=len)
-; Writes rsi bytes of rdi to stdout.
-
-
 exit:
     mov rax, SYS_EXIT
     xor rdi, rdi
