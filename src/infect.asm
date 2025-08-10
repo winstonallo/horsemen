@@ -425,6 +425,8 @@ get_full_path:
     ret
 
 ; int try_open(rdi=char*, rsi=flags, rdx=mode, rcx=callback)
+; Attempts to open rdi with the flags and mode set in rsi
+; and rdx, jmps to callback in case of failure.
 try_open:
     mov rax, SYS_OPEN
     syscall
@@ -434,7 +436,8 @@ try_open:
     .error:
         jmp rcx
 
-; write(rdi=char*, rsi=len)
+; size_t write(rdi=char*, rsi=len)
+; Writes rsi bytes of rdi to stdout.
 write:
     push rdx
     push rsi
