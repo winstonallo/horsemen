@@ -534,6 +534,10 @@ try_infect_msg:
     db "try_infect", 10
 read_directory_msg:
     db "read_directory", 10
+find_space_msg:
+    db "find_space", 10
+find_executable_segment_msg:
+    db "find_executable_segment", 10
 
 _end:
 
