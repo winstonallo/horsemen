@@ -346,7 +346,7 @@ is_elf64:
 do_infect:
     push rdi
     lea rdi, [rel do_infect_msg]
-    mov rdi, 10
+    mov rsi, 10
     call write
     pop rdi
 
