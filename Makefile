@@ -35,7 +35,7 @@ $(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)/
 
 debug:
-	$(MAKE) ASM_FLAGS="$(ASM_FLAGS) $(DEBUG_FLAGS)"
+	$(MAKE) --no-print-directory ASM_FLAGS="$(ASM_FLAGS) $(DEBUG_FLAGS)"
 
 clean:
 	rm -rf $(OBJ_DIR)
