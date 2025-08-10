@@ -497,6 +497,10 @@ exit:
     mov rax, SYS_EXIT
     xor rdi, rdi
     syscall
+<<<<<<< HEAD
+=======
+; exit
+>>>>>>> @{-1}
 
 infect_directories:
     dq tmp_test, tmp_test2, 0
