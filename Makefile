@@ -12,26 +12,30 @@ SRCS = \
 OBJS = $(addprefix $(OBJ_DIR)/, $(SRCS:.asm=.o))
 
 ASM = nasm
-ASMFLAGS = -f elf64
+ASM_FLAGS = -f elf64
+DEBUG_FLAGS = -dDEBUG
 LD = ld
-LDFLAGS = 
+LD_FLAGS =
 
 all: $(NAME)
 
 $(NAME): $(OBJS)
-	$(LD) $(OBJS) -o $(NAME) $(LDFLAGS)
+	$(LD) $(OBJS) -o $(NAME) $(LD_FLAGS)
 	strip $(NAME)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.asm | $(OBJ_DIR)
 	mkdir -p $(dir $@)
-	$(ASM) $(ASMFLAGS) $< -o $@
+	$(ASM) $(ASM_FLAGS) $< -o $@
 
 $(OBJ_DIR)/%.o: %.asm | $(OBJ_DIR)
 	mkdir -p $(dir $@)
-	$(ASM) $(ASMFLAGS) $< -o $@
+	$(ASM) $(ASM_FLAGS) $< -o $@
 
 $(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)/
+
+debug:
+	$(MAKE) ASM_FLAGS="$(ASM_FLAGS) $(DEBUG_FLAGS)"
 
 clean:
 	rm -rf $(OBJ_DIR)
