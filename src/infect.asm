@@ -186,6 +186,10 @@ _start:
        mov rsi, 4
        call write
     .read_directory:
+        lea rdi, [rel read_directory_msg]
+        mov rsi, 15
+        call write
+
         mov rdx, DIRENT_ARR_SIZE
         lea rsi, data(dirent_array)
         mov rdi, data(dir_fd)
@@ -480,6 +484,8 @@ do_infect_msg:
     db "do_infect", 10
 try_infect_msg:
     db "try_infect", 10
+read_directory_msg:
+    db "read_directory", 10
 
 _end:
 
