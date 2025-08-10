@@ -4,41 +4,45 @@ OBJ_DIR = obj
 SRC_DIR = src
 INC_DIR = inc
 
-BLOCK_SIZE=$(shell stat -fc %s .)
-
 SRCS = \
 	infect.asm
 
 OBJS = $(addprefix $(OBJ_DIR)/, $(SRCS:.asm=.o))
 
 ASM = nasm
-ASMFLAGS = -f elf64
+ASM_FLAGS = -f elf64
+DEBUG_FLAGS = -dDEBUG
 LD = ld
-LDFLAGS = 
+LD_FLAGS =
+
+STRIP_CMD = strip $(NAME)
 
 all: $(NAME)
 
 $(NAME): $(OBJS)
-	$(LD) $(OBJS) -o $(NAME) $(LDFLAGS)
-	strip $(NAME)
+	$(LD) $(OBJS) -o $(NAME) $(LD_FLAGS)
+	$(STRIP_CMD)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.asm | $(OBJ_DIR)
 	mkdir -p $(dir $@)
-	$(ASM) $(ASMFLAGS) $< -o $@
+	$(ASM) $(ASM_FLAGS) $< -o $@
 
 $(OBJ_DIR)/%.o: %.asm | $(OBJ_DIR)
 	mkdir -p $(dir $@)
-	$(ASM) $(ASMFLAGS) $< -o $@
+	$(ASM) $(ASM_FLAGS) $< -o $@
 
 $(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)/
+
+debug:
+	$(MAKE) --no-print-directory ASM_FLAGS="$(ASM_FLAGS) $(DEBUG_FLAGS)" NAME="$(NAME)_debug" STRIP_CMD="@echo -n ''" clean all
 
 clean:
 	rm -rf $(OBJ_DIR)
 
 fclean: clean
-	rm -f $(NAME) infect infect.o
+	rm -f $(NAME) $(NAME)_debug infect infect.o
 
 re: fclean all
 
-.PHONY: all clean fclean re
+.PHONY: all debug clean fclean re

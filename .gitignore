@@ -1,5 +1,6 @@
 obj
 Famine
+Famine_debug
 *.o
 a.out
 decrypt.asm
