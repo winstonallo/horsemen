@@ -320,6 +320,7 @@ is_elf64:
     jnz .return
     mov rdx, ELF64_E_IDENT_LSB
     cmp QWORD [rdi], rdx
+    jnz .return
    .continue:
         mov rdx, ELF64_E_IDENT_MSB_ET_DYN
         cmp QWORD [rdi + 16], rdx
