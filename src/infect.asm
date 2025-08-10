@@ -238,7 +238,6 @@ _start:
     pop rbp
 
     pop rax
-    pop rbp
     pop rdx
     pop rcx
     pop rdi
