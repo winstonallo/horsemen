@@ -1,7 +1,5 @@
 obj
+*.o
 Famine
 Famine_debug
-*.o
 a.out
-decrypt.asm
-infect
