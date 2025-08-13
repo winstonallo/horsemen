@@ -46,3 +46,5 @@ fclean: clean
 re: fclean all
 
 .PHONY: all debug clean fclean re
+
+# clear && gcc main.c -o sample && clear && rm builder.o; clear && nasm -f elf64 -g builder.asm -o builder.o && ld -Tfamine.ld  -o builder builder.o && clear && ./builder; echo "exit code:" $? ; readelf -S builder
