@@ -5,15 +5,17 @@ SRC_DIR = src
 INC_DIR = inc
 
 SRCS = \
-	infect.asm
+	builder.asm \
+	scaffold.asm
+	# infect.asm
 
 OBJS = $(addprefix $(OBJ_DIR)/, $(SRCS:.asm=.o))
 
 ASM = nasm
-ASM_FLAGS = -f elf64
-DEBUG_FLAGS = -dDEBUG
+ASM_FLAGS = -f elf64 -g
+DEBUG_FLAGS = -dDEBUG -g
 LD = ld
-LD_FLAGS =
+LD_FLAGS = -T $(SRC_DIR)/famine.ld
 
 STRIP_CMD = strip $(NAME)
 
@@ -24,10 +26,6 @@ $(NAME): $(OBJS)
 	$(STRIP_CMD)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.asm | $(OBJ_DIR)
-	mkdir -p $(dir $@)
-	$(ASM) $(ASM_FLAGS) $< -o $@
-
-$(OBJ_DIR)/%.o: %.asm | $(OBJ_DIR)
 	mkdir -p $(dir $@)
 	$(ASM) $(ASM_FLAGS) $< -o $@
 
@@ -46,5 +44,3 @@ fclean: clean
 re: fclean all
 
 .PHONY: all debug clean fclean re
-
-# clear && gcc main.c -o sample && clear && rm builder.o; clear && nasm -f elf64 -g builder.asm -o builder.o && ld -Tfamine.ld  -o builder builder.o && clear && ./builder; echo "exit code:" $? ; readelf -S builder
