@@ -11,3 +11,8 @@ x/1i $rip
 end
 
 us
+
+watch $r15
+c
+
+x/1li $rax

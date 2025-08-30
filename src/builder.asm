@@ -15,7 +15,7 @@ _start:
     mov rax, SYS_MMAP
     mov rdi, 0x0
     mov rsi, 0x100000 ; 0x100_000 100 kb should be enough change if more needed
-    mov rdx, PROT_READ_WRITE_EXEC
+    mov rdx, PROT_READ | PROT_WRITE | PROT_EXEC
     mov r10, 0x2
     pop r8
     mov r9, 0x0
