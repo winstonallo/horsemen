@@ -52,7 +52,7 @@ scaffold_start:
 
 
 
-    mov ebx, [rax + dirent.d_recl]
+    mov ebx, [rax + dirent.d_reclen]
     xor rax, rax
     mov rax, dirent.d_name
 
