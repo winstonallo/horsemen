@@ -10,6 +10,9 @@ pkgs.mkShell {
     nasm
     gnumake
     gdb
+    xxd
+    clang
+    python3
 
     # tools for coding
     valgrind

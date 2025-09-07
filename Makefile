@@ -7,7 +7,6 @@ INC_DIR = inc
 SRCS = \
 	builder.asm \
 	scaffold.asm
-	# infect.asm
 
 OBJS = $(addprefix $(OBJ_DIR)/, $(SRCS:.asm=.o))
 

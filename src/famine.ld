@@ -12,3 +12,4 @@ SECTIONS {
     *(.bss)
   }
 }
+

@@ -17,7 +17,7 @@ endstruc
 
 
 scaffold_table_num:
-    u64 0x1
+    u64 0x42
 scaffold_table:
     u64 scaffold_start - scaffold_table_num
     u64 scaffold_end - scaffold_table_num
