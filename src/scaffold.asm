@@ -7,6 +7,7 @@ struc	dirent
     .d_ino:			resq	1
     .d_off:			resq	1
     .d_reclen:		resw	1
+    .d_type:		resb	1
     ; char d_name[] - flexible array member, size can be calculated from d_reclen
     .d_name:			resb	1 ; Just a placeholder d_name is variable size null terminated string
     ; pad
@@ -58,36 +59,64 @@ scaffold_start:
     xor rdx, rdx
     push rdx ; push a 0 byte to the stack as a stop for the array of pointers
 
+; loop through the directories and put them on the stack
 .dir_loop
     cmp rdi, rax ; rdi < rax ?
     jge .dir_loop_end
 
-    xor rcx, rcx
-    mov rcx, rdi
-    add rcx, dirent.d_name
-    push rcx ; push the string value to the stack
+    ; check what type it is
+    xor rbx, rbx
+    mov bl, [rdi + dirent.d_type] ; load type
+    cmp bl, 8
+    je .dir_loop_continue
 
+    ; load len
     xor rbx, rbx
     mov bx, [rdi + dirent.d_reclen] ; load length
     add rdi, rbx
+
+    jmp .dir_loop
+    
+
+.dir_loop_continue
+    xor rcx, rcx
+    mov rcx, rdi
+    add rcx, dirent.d_name
+
+    mov r15,  rsp ; debugging
+
+    ; load len
+    xor rbx, rbx
+    mov bx, [rdi + dirent.d_reclen] ; load length
+    add rdi, rbx
+
+    push rcx ; push the string value to the stack
 
     jmp .dir_loop
 
 
 .dir_loop_end
 
+; now all the strings are on the stack and they are all files
+
 .string_loop
     pop rsi
     cmp rsi, 0
     je .string_loop_end
 
-    mov r15, rsp
+    xor rax, rax
+    mov al, byte [rsi]
+    cmp al, 4
+    jne .inner_ahh
+    inc rsi
+.not_4_in_front
+
 .inner_ahh
     mov rax, 1
     mov rdi, 1
     ; rsi already set
     mov rdx, 1
-    
+
     syscall
     inc rsi
     xor rax, rax
@@ -100,9 +129,8 @@ scaffold_start:
     lea rsi, [new_line]
     mov rdx, 1
     syscall
-    
+
     jmp .string_loop
-    ; Make a loop that runs per file
 
 .string_loop_end
 
