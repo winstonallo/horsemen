@@ -10,16 +10,14 @@ pkgs.mkShell {
     nasm
     gnumake
     gdb
+
     # tools for coding
     valgrind
   ];
 
-  # Optional: inherited dependencies from your build package
-  # inputsFrom = [ (import ./default.nix).build ];
-
   shellHook = ''
-    echo "🛠 Entered development shell"
     export DEV_ENV=1
+
     sudo sysctl -w vm.mmap_min_addr=0
   '';
 }
