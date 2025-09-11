@@ -11,8 +11,9 @@ pkgs.mkShell {
     gnumake
     gdb
     xxd
-    clang
     python3
+    clang-tools   # already includes clang + clangd + correct wrappers
+    glibc.dev
 
     # tools for coding
     valgrind
