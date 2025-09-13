@@ -1,32 +1,35 @@
-#include <dirent.h>
-#include <fcntl.h>
-#include <stdio.h>
-#include <unistd.h>
-
 typedef unsigned long long u64;
+typedef long long i64;
+typedef int i32;
+typedef char bool;
 
-int
-scall(int sysno, u64 _rdi, u64 _rsi, u64 _rdx, u64 _r10, u64 _r8, u64 _r9) {
-    int _rax;
+struct linux_dirent64 {
+    u64 d_ino;
+    long d_off;
+    unsigned short d_reclen;
+    unsigned char d_type;
+    char d_name[];
+};
+
+i64
+scall(i32 sysno, u64 _rdi, u64 _rsi, u64 _rdx) {
+    i64 _rax;
     register u64 rax asm("rax") = sysno;
     register u64 rdi asm("rdi") = _rdi;
     register u64 rsi asm("rsi") = _rsi;
     register u64 rdx asm("rdx") = _rdx;
-    register u64 r10 asm("r10") = _r10;
-    register u64 r8 asm("r8") = _r8;
-    register u64 r9 asm("r9") = _r9;
 
-    asm volatile("syscall" : "=a"(_rax) : "r"(rax), "r"(rdi), "r"(rsi), "r"(rdx), "r"(r10), "r"(r8), "r"(r9) : "rcx", "r11", "memory");
+    asm volatile("syscall" : "=a"(_rax) : "r"(rax), "r"(rdi), "r"(rsi), "r"(rdx) : "rcx", "r11", "memory");
 
     return _rax;
 }
 
 const char *
-sstr(const char *needle, const char *haystack) {
-    size_t i = 0, j = 0;
+sstr(const char *const needle, const char *const haystack) {
+    u64 i = 0, j = 0;
 
     while (haystack[i]) {
-        int k = i;
+        i32 k = i;
         while (haystack[k] && needle[j] && haystack[k] == needle[j]) {
             j++;
             k++;
@@ -40,18 +43,18 @@ sstr(const char *needle, const char *haystack) {
     return 0;
 }
 
-size_t
-slen(const char *s) {
-    size_t len = 0;
+u64
+slen(const char *const s) {
+    u64 len = 0;
     while (s[len]) {
         len++;
     }
     return len;
 }
 
-int
-sdigit(const char *s) {
-    for (int i = 0; s[i]; ++i) {
+bool
+sdigit(const char *const s) {
+    for (u64 i = 0; s[i]; ++i) {
         if (s[i] < '0' || s[i] > '9') {
             return 0;
         }
@@ -59,68 +62,87 @@ sdigit(const char *s) {
     return 1;
 }
 
-int
-is_process_running(const char *process_name) {
-    struct dirent *entry;
-    char path[256];
-    path[0] = '/';
-    path[1] = 'p';
-    path[2] = 'r';
-    path[3] = 'o';
-    path[4] = 'c';
-    path[5] = '/';
-    const char cmdline_const[] = "/cmdline";
-    char cmdline[1024];
-
-    DIR *proc_dir = opendir("/proc");
-    if (!proc_dir) {
-        return 0;
+// This function was written with no regard for safety whatsoever.
+void
+scat(char *const to, const char *const from) {
+    u64 i = 0, j = 0;
+    for (; to[i]; ++i) {
+        /* ... */
     }
+    for (; from[j]; ++j, ++i) {
+        to[i] = from[j];
+    }
+    to[i + j] = 0;
+}
 
-    while ((entry = readdir(proc_dir))) {
-        if (!sdigit(entry->d_name)) {
-            continue;
-        }
+void
+szero(char *const s, u64 bytes) {
+    for (u64 i = 0; i < bytes; ++i) {
+        s[i] = 0;
+    }
+}
 
-        const size_t len = slen(entry->d_name);
-        if (len + 14 > sizeof(path)) {
-            continue;
-        }
-        size_t i = 0;
-        for (; i < len; ++i) {
-            path[i + 6] = entry->d_name[i];
-        }
-        for (; i < sizeof(cmdline_const) + len + 6; ++i) {
-            path[i + 6] = cmdline_const[i - len];
-        }
-        path[i] = 0;
-
-        int fd = scall(2, (long int)path, O_RDONLY, 0, 0, 0, 0);
-        if (fd == -1) {
-            return 0;
-        }
-
-        long int read_bytes = scall(0, fd, (long int)cmdline, sizeof(cmdline), 0, 0, 0);
-        if (read_bytes == -1) {
-            return 0;
-        }
-        for (int i = 0; i < read_bytes; ++i) {
-            if (cmdline[i] == ' ') {
-                cmdline[i] = 0;
-                break;
-            }
-        }
-
-        if (sstr(process_name, cmdline)) {
-            return 1;
+char *
+schr(char *const s, char c) {
+    for (u64 i = 0; s[i]; ++i) {
+        if (s[i] == c) {
+            return &s[i];
         }
     }
     return 0;
 }
 
-int
-main(int ac, char **av) {
-    if (ac == 2) {
-        return is_process_running(av[1]) != 1;
+bool
+is_process_running(const char *process_name) {
+    char path[256] = {0};
+    char cmdline_buffer[1024];
+    char getdents_buffer[4096];
+
+    i64 proc_dir_fd = scall(2, (u64) "/proc", 0, 0);
+    if (!proc_dir_fd) {
+        return 0;
     }
+
+    scat(path, "/proc/");
+    while (1) {
+
+        i64 bytes_read = scall(217, proc_dir_fd, (u64)getdents_buffer, sizeof(getdents_buffer));
+        if (bytes_read <= 0) {
+            break;
+        }
+        i64 offset = 0;
+        while (offset < bytes_read) {
+            struct linux_dirent64 *entry = (struct linux_dirent64 *)(getdents_buffer + offset);
+            offset += entry->d_reclen;
+            if (!sdigit(entry->d_name)) {
+                continue;
+            }
+            const u64 len = slen(entry->d_name);
+            if (len + 14 > sizeof(path)) {
+                continue;
+            }
+            scat(path, entry->d_name);
+            scat(path, "/cmdline");
+            i32 fd = scall(2, (u64)path, 0, 0);
+            if (fd == -1) {
+                continue;
+            }
+            szero(&path[6], sizeof(path) - 6);
+            i64 read_bytes = scall(0, fd, (u64)cmdline_buffer, sizeof(cmdline_buffer));
+            if (read_bytes == -1) {
+                continue;
+            }
+            scall(3, fd, 0, 0);
+            char *space = schr(cmdline_buffer, ' ');
+            if (space) {
+                *space = 0;
+            }
+            if (sstr(process_name, cmdline_buffer)) {
+                scall(3, proc_dir_fd, 0, 0);
+                return 1;
+            }
+        }
+    }
+    scall(3, proc_dir_fd, 0, 0);
+    return 0;
 }
