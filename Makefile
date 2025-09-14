@@ -5,8 +5,7 @@ SRC_DIR = src
 INC_DIR = inc
 
 SRCS = \
-	builder.asm \
-	scaffold.asm
+	builder.asm
 
 OBJS = $(addprefix $(OBJ_DIR)/, $(SRCS:.asm=.o))
 
@@ -20,8 +19,11 @@ STRIP_CMD = strip $(NAME)
 
 all: $(NAME)
 
-$(NAME): $(OBJS)
+$(NAME): $(OBJS) builder payload
 	$(LD) $(OBJS) -o $(NAME) $(LD_FLAGS)
+	./build
+	rm build
+	rm inject
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.asm | $(OBJ_DIR)
 	mkdir -p $(dir $@)
@@ -30,6 +32,11 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.asm | $(OBJ_DIR)
 $(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)/
 
+builder:
+	cc src/build.c -g -O0 -o build
+
+payload:
+	cc src/inject.c -o inject -nostartfiles
 clean:
 	rm -rf $(OBJ_DIR)
 
