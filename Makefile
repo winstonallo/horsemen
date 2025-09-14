@@ -22,7 +22,6 @@ all: $(NAME)
 
 $(NAME): $(OBJS)
 	$(LD) $(OBJS) -o $(NAME) $(LD_FLAGS)
-	$(STRIP_CMD)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.asm | $(OBJ_DIR)
 	mkdir -p $(dir $@)
@@ -30,9 +29,6 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.asm | $(OBJ_DIR)
 
 $(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)/
-
-debug:
-	$(MAKE) --no-print-directory ASM_FLAGS="$(ASM_FLAGS) $(DEBUG_FLAGS)" NAME="$(NAME)_debug" STRIP_CMD="@echo -n ''" clean all
 
 clean:
 	rm -rf $(OBJ_DIR)

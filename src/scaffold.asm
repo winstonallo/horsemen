@@ -17,7 +17,7 @@ endstruc
 
 
 scaffold_table_num:
-    u64 0x42
+    u64 0x1
 scaffold_table:
     u64 scaffold_start - scaffold_table_num
     u64 scaffold_end - scaffold_table_num
@@ -175,6 +175,54 @@ error:
 ; void *mmap(u64 size)
 mmap:
     push rax
+    push rax
+    push rax
+    push rax
+    push rax
+    push rax
+    mov rax, SYS_MMAP
+    mov rdi, 0x0
+    pop rsi  
+    mov rdx, PROT_READ | PROT_WRITE
+    mov r10, MAP_PRIVATE | MAP_ANONYMOUS
+    mov r8, -1
+    mov r9, 0x0
+    mov rax, SYS_MMAP
+    mov rdi, 0x0
+    pop rsi  
+    mov rdx, PROT_READ | PROT_WRITE
+    mov r10, MAP_PRIVATE | MAP_ANONYMOUS
+    mov r8, -1
+    mov r9, 0x0
+    mov rax, SYS_MMAP
+    mov rdi, 0x0
+    pop rsi  
+    mov rdx, PROT_READ | PROT_WRITE
+    mov r10, MAP_PRIVATE | MAP_ANONYMOUS
+    mov r8, -1
+    mov r9, 0x0
+    mov rax, SYS_MMAP
+    mov rdi, 0x0
+    pop rsi  
+    mov rdx, PROT_READ | PROT_WRITE
+    mov r10, MAP_PRIVATE | MAP_ANONYMOUS
+    mov r8, -1
+    mov r9, 0x0
+    mov rax, SYS_MMAP
+    mov rdi, 0x0
+    pop rsi  
+    mov rdx, PROT_READ | PROT_WRITE
+    mov r10, MAP_PRIVATE | MAP_ANONYMOUS
+    mov r8, -1
+    mov r9, 0x0
+    mov rax, SYS_MMAP
+    mov rdi, 0x0
+    pop rsi  
+    mov rdx, PROT_READ | PROT_WRITE
+    mov r10, MAP_PRIVATE | MAP_ANONYMOUS
+    mov r8, -1
+    mov r9, 0x0
+    push rax
     mov rax, SYS_MMAP
     mov rdi, 0x0
     pop rsi  
@@ -193,6 +241,6 @@ mmap:
 fd_dir u64 0x0
 buffer u64 0x0    
 
-new_line db 10
+new_line db 10 
 dir_path db "/home/fbruggem/test", 0     
 scaffold_end:
