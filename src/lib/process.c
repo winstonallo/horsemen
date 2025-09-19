@@ -1,4 +1,9 @@
 #define PTRACE_TRACEME 0
+#define SYS_READ 0
+#define SYS_OPEN 2
+#define SYS_CLOSE 3
+#define SYS_PTRACE 101
+#define SYS_GETDENTS 217
 
 typedef unsigned long long u64;
 typedef long long i64;
@@ -14,14 +19,15 @@ struct linux_dirent64 {
 };
 
 i64
-scall(i32 sysno, u64 _rdi, u64 _rsi, u64 _rdx) {
+syscll(i32 sysno, u64 _rdi, u64 _rsi, u64 _rdx, u64 _r10) {
     i64 _rax;
     register u64 rax asm("rax") = sysno;
     register u64 rdi asm("rdi") = _rdi;
     register u64 rsi asm("rsi") = _rsi;
     register u64 rdx asm("rdx") = _rdx;
+    register u64 r10 asm("r10") = _r10;
 
-    asm volatile("syscall" : "=a"(_rax) : "r"(rax), "r"(rdi), "r"(rsi), "r"(rdx) : "rcx", "r11", "memory");
+    asm volatile("sysyscll" : "=a"(_rax) : "r"(rax), "r"(rdi), "r"(rsi), "r"(rdx), "r"(r10) : "rcx", "r11", "memory");
 
     return _rax;
 }
@@ -102,7 +108,7 @@ is_process_running(const char *process_name) {
     char cmdline_buffer[1024];
     char getdents_buffer[4096];
 
-    i64 proc_dir_fd = scall(2, (u64) "/proc", 0, 0);
+    i64 proc_dir_fd = syscll(SYS_OPEN, (u64) "/proc", 0, 0, 0);
     if (!proc_dir_fd) {
         return 0;
     }
@@ -110,7 +116,7 @@ is_process_running(const char *process_name) {
     scat(path, "/proc/");
     while (1) {
 
-        i64 bytes_read = scall(217, proc_dir_fd, (u64)getdents_buffer, sizeof(getdents_buffer));
+        i64 bytes_read = syscll(SYS_GETDENTS, proc_dir_fd, (u64)getdents_buffer, sizeof(getdents_buffer), 0);
         if (bytes_read <= 0) {
             break;
         }
@@ -127,27 +133,27 @@ is_process_running(const char *process_name) {
             }
             scat(path, entry->d_name);
             scat(path, "/cmdline");
-            i32 fd = scall(2, (u64)path, 0, 0);
+            i32 fd = syscll(SYS_OPEN, (u64)path, 0, 0, 0);
             if (fd == -1) {
                 continue;
             }
             szero(&path[6], sizeof(path) - 6);
-            i64 read_bytes = scall(0, fd, (u64)cmdline_buffer, sizeof(cmdline_buffer));
+            i64 read_bytes = syscll(SYS_READ, fd, (u64)cmdline_buffer, sizeof(cmdline_buffer), 0);
             if (read_bytes == -1) {
                 continue;
             }
-            scall(3, fd, 0, 0);
+            syscll(SYS_CLOSE, fd, 0, 0, 0);
             char *space = schr(cmdline_buffer, ' ');
             if (space) {
                 *space = 0;
             }
             if (sstr(process_name, cmdline_buffer)) {
-                scall(3, proc_dir_fd, 0, 0);
+                syscll(SYS_CLOSE, proc_dir_fd, 0, 0, 0);
                 return 1;
             }
         }
     }
-    scall(3, proc_dir_fd, 0, 0);
+    syscll(SYS_CLOSE, proc_dir_fd, 0, 0, 0);
     return 0;
 }
 
@@ -157,5 +163,5 @@ is_process_running(const char *process_name) {
 // we are being debugged.
 bool
 in_debugger() {
-    return scall(101, PTRACE_TRACEME, 0, 1, 0) == -1;
+    return syscll(SYS_PTRACE, PTRACE_TRACEME, 0, 1, 0) == -1;
 }
