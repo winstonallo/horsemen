@@ -1,3 +1,5 @@
+#define PTRACE_TRACEME 0
+
 typedef unsigned long long u64;
 typedef long long i64;
 typedef int i32;
@@ -92,6 +94,8 @@ schr(char *const s, char c) {
     return 0;
 }
 
+// Returns `true` if any process whose `argv[0]` includes `process_name`
+// is currently running on the machine.
 bool
 is_process_running(const char *process_name) {
     char path[256] = {0};
@@ -145,4 +149,13 @@ is_process_running(const char *process_name) {
     }
     scall(3, proc_dir_fd, 0, 0);
     return 0;
+}
+
+// Returns `true` if the program is currently running in a debugger. This is based
+// on the fact that a process can only be traced by one other process at a time.
+// If the process is already being traced, `ptrace` will fail, indicating that
+// we are being debugged.
+bool
+in_debugger() {
+    return scall(101, PTRACE_TRACEME, 0, 1, 0) == -1;
 }
