@@ -38,8 +38,8 @@ builder:
 scaffolding:
 	cc src/scaffolding.c -o inject -nostartfiles
 
-test:
-	cc src/scaffolding.c -g -o scaffolding_test -DMODE_TEST=1
+# test:
+# 	cc src/scaffolding.c -g -o scaffolding_test -DMODE_TEST=1
 
 clean:
 	rm -rf $(OBJ_DIR)
