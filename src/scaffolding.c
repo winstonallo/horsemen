@@ -10,17 +10,12 @@ sys(long n, long arg1, long arg2, long arg3, long arg4, long arg5, long arg6) {
 
 #include "syscall.h"
 
-struct mydata {
-    int x;
-    char y;
-    char msg[16];
-};
+inline void
+ft_exit(int exit_code) {
+    sys(60, exit_code, 0, 0, 0, 0, 0);
+}
 
 void
 _start(void) {
-    struct mydata d = {.x = 42, .y = 'a', .msg = "struct demo\n"};
-
-    sys(1, 1, (long)&(d.y), 1, 0, 0, 0);
-
-    sys(60, 2, 0, 0, 0, 0, 0);
+    ft_exit(0);
 }

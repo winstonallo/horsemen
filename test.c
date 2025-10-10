@@ -1,25 +1,27 @@
+#include <dirent.h>
+#include <elf.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <elf.h>
 #include <sys/mman.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <dirent.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 typedef struct {
     off_t size;
     char path[1024];
 } CodeCave;
 
-int compare_code_caves(const void *a, const void *b) {
+int
+compare_code_caves(const void *a, const void *b) {
     off_t size_a = ((CodeCave *)a)->size;
     off_t size_b = ((CodeCave *)b)->size;
     return (size_a > size_b) - (size_a < size_b);
 }
 
-void print_code_caves(const char *filename, CodeCave *caves, int *cave_count) {
+void
+print_code_caves(const char *filename, CodeCave *caves, int *cave_count) {
     int fd = open(filename, O_RDONLY);
     if (fd == -1) {
         perror("Failed to open file");
@@ -57,8 +59,7 @@ void print_code_caves(const char *filename, CodeCave *caves, int *cave_count) {
     // Iterate through sections to find gaps
     for (int i = 1; i < ehdr->e_shnum; i++) {
         Elf64_Shdr *current = &shdr[i];
-        if (current->sh_type == SHT_NULL || current->sh_size == 0)
-            continue;
+        if (current->sh_type == SHT_NULL || current->sh_size == 0 || current->sh_type == SHT_PROGBITS) continue;
 
         // Find the next section
         Elf64_Shdr *next = (i + 1 < ehdr->e_shnum) ? &shdr[i + 1] : NULL;
@@ -81,7 +82,8 @@ void print_code_caves(const char *filename, CodeCave *caves, int *cave_count) {
     close(fd);
 }
 
-void scan_directory(const char *dirpath) {
+void
+scan_directory(const char *dirpath) {
     DIR *dir = opendir(dirpath);
     if (!dir) {
         perror("Failed to open directory");
@@ -95,8 +97,7 @@ void scan_directory(const char *dirpath) {
 
     while ((entry = readdir(dir)) != NULL) {
         // Skip "." and ".."
-        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
-            continue;
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) continue;
 
         snprintf(path, sizeof(path), "%s/%s", dirpath, entry->d_name);
         struct stat st;
@@ -147,7 +148,8 @@ void scan_directory(const char *dirpath) {
     }
 }
 
-int main(int argc, char *argv[]) {
+int
+main(int argc, char *argv[]) {
     if (argc != 2) {
         fprintf(stderr, "Usage: %s <directory>\n", argv[0]);
         return EXIT_FAILURE;

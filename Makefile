@@ -19,7 +19,7 @@ STRIP_CMD = strip $(NAME)
 
 all: $(NAME)
 
-$(NAME): $(OBJS) builder payload
+$(NAME): $(OBJS) builder scaffolding
 	$(LD) $(OBJS) -o $(NAME) $(LD_FLAGS)
 	./build
 	rm build
@@ -35,8 +35,12 @@ $(OBJ_DIR):
 builder:
 	cc src/build.c -g -O0 -o build
 
-payload:
-	cc src/inject.c -o inject -nostartfiles
+scaffolding:
+	cc src/scaffolding.c -o inject -nostartfiles
+
+test:
+	cc src/scaffolding.c -g -o scaffolding_test -DMODE_TEST=1
+
 clean:
 	rm -rf $(OBJ_DIR)
 
