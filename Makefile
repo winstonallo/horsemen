@@ -36,7 +36,7 @@ builder:
 	cc src/build.c -g -o build
 
 scaffolding:
-	cc src/scaffolding.c -O0 -o scaffolding -nostartfiles
+	cc src/scaffolding.c  -o scaffolding -nostartfiles
 
 test:
 	cc src/scaffolding.c -o testing -g  -DTESTING=1

