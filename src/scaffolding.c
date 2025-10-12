@@ -103,7 +103,7 @@ ft_strstr(char *haystack, char *needle, size_t size) {
 
 inline int
 ft_string_search_fd(int fd, char *needle) {
-    const uint64_t BUF_SIZE_WITHOUT_OVERLAP = 4;
+    const uint64_t BUF_SIZE_WITHOUT_OVERLAP = 1000;
     const uint64_t NEEDLE_SIZE = ft_strlen(needle);
     const uint64_t BUF_SIZE = BUF_SIZE_WITHOUT_OVERLAP + NEEDLE_SIZE;
 
