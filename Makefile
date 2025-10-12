@@ -23,7 +23,7 @@ $(NAME): $(OBJS) builder scaffolding
 	$(LD) $(OBJS) -o $(NAME) $(LD_FLAGS)
 	./build
 	rm build
-	rm inject
+	rm scaffolding
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.asm | $(OBJ_DIR)
 	mkdir -p $(dir $@)
@@ -33,13 +33,13 @@ $(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)/
 
 builder:
-	cc src/build.c -g -O0 -o build
+	cc src/build.c -g -o build
 
 scaffolding:
-	cc src/scaffolding.c -o inject -nostartfiles
+	cc src/scaffolding.c -O0 -o scaffolding -nostartfiles
 
-# test:
-# 	cc src/scaffolding.c -g -o scaffolding_test -DMODE_TEST=1
+test:
+	cc src/scaffolding.c -o testing -g  -DTESTING=1
 
 clean:
 	rm -rf $(OBJ_DIR)

@@ -21,7 +21,7 @@ int file_mmap(const char *file_name, file *file);
 int
 main() {
     char *path_target = "./Famine";
-    char *path_source = "./inject";
+    char *path_source = "./scaffolding";
 
     file file_source;
     if (file_mmap(path_source, &file_source)) {
@@ -104,10 +104,11 @@ file_mmap(const char *file_name, file *file) {
         if (errno != 0) {
             perror(file_name);
         } else {
-            fprintf(
-                stderr,
-                "Could not lseek on fd %d. You probably passed a directory as a file, but we are not allowed to use fcntl so all we can do is guess - bye\n",
-                fd);
+            fprintf(stderr,
+                    "Could not lseek on fd %d. You probably passed a directory as a "
+                    "file, but we are not allowed to use fcntl so all we can do is "
+                    "guess - bye\n",
+                    fd);
         }
         close(fd);
         return 1;
