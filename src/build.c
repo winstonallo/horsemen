@@ -44,18 +44,14 @@ main() {
         return (1);
     }
 
-    u_int64_t value = 1;
-    memcpy(file_target.mem + 0x1000, &value, 8);
+    u_int64_t start_offset = 0x1010;
+    memcpy(file_target.mem + 0x1000, &start_offset, 8);
 
-    value = 0x1018;
-    memcpy(file_target.mem + 0x1008, &value, 8);
-
-    value = section_header_entry_source->sh_size;
-    memcpy(file_target.mem + 0x1010, &value, 8);
+    memcpy(file_target.mem + 0x1008, &section_header_entry_source->sh_size, 8);
 
     printf("Section header size: %lx\n", section_header_entry_source->sh_size);
     printf("Section header offset: %lx\n", section_header_entry_source->sh_offset);
-    memcpy(file_target.mem + 0x1018, file_source.mem + section_header_entry_source->sh_offset, section_header_entry_source->sh_size);
+    memcpy(file_target.mem + 0x1010, file_source.mem + section_header_entry_source->sh_offset, section_header_entry_source->sh_size);
 
     if (file_write(file_target, path_target)) {
         printf("error while writing back to %s\n", path_target);

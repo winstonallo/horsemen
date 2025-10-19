@@ -23,7 +23,7 @@ _start() {
     // path[1] = '\0';
     //
     // infect_dir(path);
-    ft_exit(42);
+    ft_exit(100);
 }
 
 __attribute__((always_inline)) inline int

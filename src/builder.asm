@@ -12,11 +12,11 @@ _start:
     push rax ; rax == fd
 
     ; mmap /proc/self/exe for easy access
-    // mmap for dest
+    ; mmap for src
     mov rax, SYS_MMAP
     mov rdi, 0x0
     mov rsi, 0x100000 ; 0x100_000 100 kb should be enough - change if more needed
-    mov rdx, PROT_READ | PROT_WRITE | PROT_EXEC
+    mov rdx, PROT_READ
     mov r10, 0x2
     pop r8
     mov r9, 0x0
@@ -25,7 +25,7 @@ _start:
     push rax
     ; xor r13, r13 ; outer i
 
-    // mmap for src
+    ; mmap for dest
     mov rax, SYS_MMAP
     mov rdi, 0x0
     mov rsi, 0x100000
@@ -35,8 +35,8 @@ _start:
     mov r9, 0x0
     syscall
 
-    mov r8, rax ; ADDR r8 = src
-    pop r9 ; ADDR r9 = dest
+    pop r8 ; ADDR r8 = src
+    mov r9, rax ; ADDR r9 = dst
 
     mov r10, r9 ; ADDR r10 == pointer for writing dst
 
@@ -47,55 +47,41 @@ _start:
     ; loop condition
     mov r11, [rel scaffold_table_num] 
     cmp rcx, r11
-    je loop_sections_end
+    je .loop_sections_end
 
     xor rdx, rdx ; counter of bytes in entry for copying
 
     ; Read table into regiseters
-    mov r11, [rel scaffold_table_offset] 
-    add r11, 8
-    imul 
-.loop_memcpy
-    cmp rcx, r12
-    je loop_sections_end
-; loop_memcpy:
-;     mov rax, r10
-;     add rax, 8 ; set to start of table
-;
-;     mov rbx, rcx
-;     imul rbx, 16
-;     add rax, rbx ; rax += rcx * 16 ; rax is an ADDR
-;
-;     mov rsi, [rax] ; this is now the offset relative to the start of the scaf section
-;     add rsi, r8 ; add mmap_file
-;     add rsi, OFFSET_SCAFF ; add section_offset
-;     ; rsi is now pointing to the start of the to be read thing
-;
-;     mov rbx, [rax + 8] ; this is not the offset of the end of the scaf block
-;     add rbx, r8 ; add mmap_file
-;     add rbx, OFFSET_SCAFF ; add section_offset
-;     ; rbx is now the HALT for the copying
-;
-; loop_inner:
-;     mov al, [rsi]
-;     mov [rdi], al
-;     inc rdi
-;     inc rsi
-;     cmp rsi, rbx
-;     jne loop_inner
-;
-;
-;     inc rcx
-;     cmp rcx, [r10] ; if (rcx == *r10)
-;     jne loop_memcpy
-;
-;     mov rax, _start
-;     mov rbx, _end
-;
-jmp loop_memcpy
-.loop_memcpy_end
+    mov rsi, 16 
+    imul rsi, rcx
+    add  rsi, [rel scaffold_table_offset] 
+    add rsi, r8
+    ; now its the memory adress in rsi
+    mov r11, [rsi];
+    add r11, r8
+    ; r11 == start in mem
+    add rsi, 8
+    mov r12, [rsi];
+    ; r12 == size
 
-jmp loop_section
+.loop_memcpy:
+    cmp rdx, r12
+    je .loop_sections_end
+
+    mov rbx, r11
+    add rbx, rdx
+    mov al, [rbx]
+
+    mov [r10], al
+    inc rdx
+    inc r10
+
+jmp .loop_memcpy
+.loop_memcpy_end:
+
+inc rcx
+
+jmp .loop_sections
 .loop_sections_end:
 
 

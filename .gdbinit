@@ -5,8 +5,13 @@
 # print cur_file
 # print &dir_buf
 # end
-# set disassembly-flavor intel
-#
+set disassembly-flavor intel
+
+define us
+s
+info registers
+x/100x $r9
+end
 # b jmp_to_scaffold
 # r
 #
