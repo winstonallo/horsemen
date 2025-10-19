@@ -47,10 +47,10 @@ main() {
     u_int64_t value = 1;
     memcpy(file_target.mem + 0x1000, &value, 8);
 
-    value = 0x18;
+    value = 0x1018;
     memcpy(file_target.mem + 0x1008, &value, 8);
 
-    value = 0x18 + section_header_entry_source->sh_size;
+    value = section_header_entry_source->sh_size;
     memcpy(file_target.mem + 0x1010, &value, 8);
 
     printf("Section header size: %lx\n", section_header_entry_source->sh_size);
