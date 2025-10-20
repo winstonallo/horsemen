@@ -10,17 +10,22 @@ set disassembly-flavor intel
 define us
 s
 info registers
-x/100x $r9
+x/200xh $r9
+end
+define uc
+c
+info registers
+x/200xh $r9
 end
 # b jmp_to_scaffold
 # r
 #
 # break *$r9
 #
-# define us
-# si
-# x/1i $rip
-# end
+define ui
+si
+x/1i $rip
+end
 #
 # us
 #

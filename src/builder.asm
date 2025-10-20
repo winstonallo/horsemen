@@ -66,7 +66,7 @@ _start:
 
 .loop_memcpy:
     cmp rdx, r12
-    je .loop_sections_end
+    je .loop_memcpy_end
 
     mov rbx, r11
     add rbx, rdx

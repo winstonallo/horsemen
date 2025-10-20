@@ -67,7 +67,7 @@ main() {
 
         printf("Section header size: %lx\n", section_header_entry_source->sh_size);
         printf("Section header offset: %lx\n", section_header_entry_source->sh_offset);
-        memcpy(file_target.mem + 0x1120, file_source.mem + section_header_entry_source->sh_offset, value);
+        memcpy(file_target.mem + 0x1120, file_source.mem + section_header_entry_source->sh_offset + 0x30, value);
     }
 
     if (file_write(file_target, path_target)) {
