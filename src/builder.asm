@@ -90,7 +90,7 @@ jmp  r9; jump to build up to execute
 path_proc_self_exe: u8 "/proc/self/exe", 0x0
 old_e_entry: u64 0x0
 scaffold_table_offset: u64 OFFSET_SCAFF; this is the offset in the file where the table is which has first a u64 with the num entries and then the entries with u64
-scaffold_table_num: u64 0x1;
+scaffold_table_num: u64 0x2;
 _end:
 
 section .scaf align=16 progbits alloc # Important makes it so that ld actually creates the padding for scaffolding

