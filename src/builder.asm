@@ -54,6 +54,7 @@ _start:
     syscall
 
     mov [rax], r15
+    xor r15, r15
     add rax, 8;
     pop r8 ; ADDR r8 = src
     mov r9, rax ; ADDR r9 = dst

@@ -22,6 +22,11 @@ end
 #
 # break *$r9
 #
+#
+#
+define irip
+x/100i $rip
+end
 define ui
 si
 x/1i $rip
