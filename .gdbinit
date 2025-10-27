@@ -7,16 +7,27 @@
 # end
 set disassembly-flavor intel
 
+b *0x4ef1d3
+
+define one
+c 
+info registers
+end
+
 define us
 s
 info registers
 x/200xh $r9
 end
+
+
 define uc
 c
 info registers
 x/200xh $r9
 end
+
+
 # b jmp_to_scaffold
 # r
 #
