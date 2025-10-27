@@ -44,17 +44,17 @@ main() {
         return (1);
     }
 
+    u_int64_t size = 0x10;
     {
 
         u_int64_t start_offset = 0x1020;
         memcpy(file_target.mem + 0x1000, &start_offset, 8);
 
-        u_int64_t value = 0x30;
-        memcpy(file_target.mem + 0x1008, &value, 8);
+        memcpy(file_target.mem + 0x1008, &size, 8);
 
         printf("Section header size: %lx\n", section_header_entry_source->sh_size);
         printf("Section header offset: %lx\n", section_header_entry_source->sh_offset);
-        memcpy(file_target.mem + 0x1020, file_source.mem + section_header_entry_source->sh_offset, 0x30);
+        memcpy(file_target.mem + 0x1020, file_source.mem + section_header_entry_source->sh_offset, size);
     }
 
     {
@@ -62,12 +62,12 @@ main() {
         u_int64_t start_offset = 0x1120;
         memcpy(file_target.mem + 0x1010, &start_offset, 8);
 
-        u_int64_t value = section_header_entry_source->sh_size - 0x30;
+        u_int64_t value = section_header_entry_source->sh_size - size;
         memcpy(file_target.mem + 0x1018, &value, 8);
 
         printf("Section header size: %lx\n", section_header_entry_source->sh_size);
         printf("Section header offset: %lx\n", section_header_entry_source->sh_offset);
-        memcpy(file_target.mem + 0x1120, file_source.mem + section_header_entry_source->sh_offset + 0x30, value);
+        memcpy(file_target.mem + 0x1120, file_source.mem + section_header_entry_source->sh_offset + size, value);
     }
 
     if (file_write(file_target, path_target)) {

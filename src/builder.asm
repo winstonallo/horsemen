@@ -46,7 +46,7 @@ _start:
     ; mmap for dest
     mov rax, SYS_MMAP
     mov rdi, 0x6969690000
-    mov rsi, 0x100000
+    mov rsi, 0x10000000
     mov rdx, 0x7
     mov r10, 0x2 | 0x20 | 0x10
     xor r8, r8
@@ -85,6 +85,7 @@ _start:
     mov r12, [rsi];
     ; r12 == size
 
+    xor rax, rax
 .loop_memcpy:
     cmp rdx, r12
     je .loop_memcpy_end
