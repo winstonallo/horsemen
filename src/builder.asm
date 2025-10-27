@@ -108,26 +108,26 @@ jmp .loop_sections
 
 jmp  r9; jump to build up to execute
 
-    mov rax, 0x69690000
-    mov rsp, [rax]
-    pop     r11
-    pop     r10
-    pop     r9
-    pop     r8
-    pop     r15
-    pop     r14
-    pop     r13
-    pop     r12
-    pop     rbp
-    pop     rdi
-    pop     rsi
-    pop     rdx
-    pop     rcx
-    pop     rbx
-    pop     rax
-    popfq
+mov rax, 0x69690000
+mov rsp, [rax]
+pop     r11
+pop     r10
+pop     r9
+pop     r8
+pop     r15
+pop     r14
+pop     r13
+pop     r12
+pop     rbp
+pop     rdi
+pop     rsi
+pop     rdx
+pop     rcx
+pop     rbx
+pop     rax
+popfq
 
-    jmp    [rel old_e_entry]   ; directly jump to the qword at that memory
+jmp    [rel old_e_entry]   ; directly jump to the qword at that memory
 
 path_proc_self_exe: u8 "/proc/self/exe", 0x0
 old_rsp: u64 0x0
