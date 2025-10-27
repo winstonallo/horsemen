@@ -32,8 +32,8 @@ _start:
     ; mmap /proc/self/exe for easy access
     ; mmap for src
     mov rax, SYS_MMAP
-    mov rdi, 0x0
-    mov rsi, 0x100000 ; 0x100_000 100 kb should be enough - change if more needed
+    mov rdi, 0x424242420000
+    mov rsi, 0x1000000 ; 0x100_000 100 kb should be enough - change if more needed
     mov rdx, PROT_READ
     mov r10, 0x2
     pop r8
@@ -45,7 +45,7 @@ _start:
 
     ; mmap for dest
     mov rax, SYS_MMAP
-    mov rdi, 0x6969690000
+    mov rdi, 0x69690000
     mov rsi, 0x10000000
     mov rdx, 0x7
     mov r10, 0x2 | 0x20 | 0x10
@@ -108,7 +108,7 @@ jmp .loop_sections
 
 jmp  r9; jump to build up to execute
 
-    mov rax, 0x6969690000
+    mov rax, 0x69690000
     mov rsp, [rax]
     pop     r11
     pop     r10

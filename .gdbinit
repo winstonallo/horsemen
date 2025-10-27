@@ -7,7 +7,7 @@
 # end
 set disassembly-flavor intel
 
-b *0x4ef1d3
+# b *0x4ef1d3
 
 define one
 c 

