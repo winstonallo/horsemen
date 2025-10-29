@@ -31,19 +31,19 @@ ASM_FLAGS = -f elf64 -g
 
 builder: $(BUILD_DIR)
 	$(ASM) $(ASM_FLAGS) src/builder.asm -o $(BUILD_DIR)/builder.o
-	$(LD) $(BUILD_DIR)/builder.o -o builder $(LD_FLAGS)
+	$(LD) $(BUILD_DIR)/builder.o -o $(BUILD_DIR)/builder $(LD_FLAGS)
 
-scaffolding:
+scaffolding: src/scaffolding.c
 	cc src/scaffolding.c  -o $(BUILD_DIR)/scaffolding -nostartfiles
 	
-inject:
+inject: src/inject.c
 	cc src/inject.c -o $(BUILD_DIR)/inject
 
-patient_zero:
+patient_zero: src/inject.c src/scaffolding.c
 	rm -f $(NAME)
 	cc src/patient_zero.c -o $(NAME)
 
-$(BUILD_DIR):
+$(BUILD_DIR): | $(BUILD_DIR)
 	mkdir -p $(BUILD_DIR)/
 
 clean:

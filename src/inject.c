@@ -22,7 +22,7 @@ int file_mmap(const char *file_name, file *file);
 int
 main() {
     char *path_target = "./build/scaffolding";
-    char *path_source = "./build/builder.o";
+    char *path_source = "./build/builder";
 
     file file_source;
     if (file_mmap(path_source, &file_source)) {
@@ -36,15 +36,24 @@ main() {
         return (1);
     }
 
-    Elf64_Ehdr *header = file_target.mem;
+    Elf64_Ehdr *header = file_source.mem;
+    Elf64_Shdr *section_header_text = NULL;
+    Elf64_Shdr *sh_table = file_source.mem + header->e_shoff;
+    for (int i = 0; i < header->e_shnum; i++) {
+        Elf64_Shdr *sh = sh_table + i;
+        if (sh->sh_flags == (SHF_ALLOC | SHF_EXECINSTR)) section_header_text = sh;
+    }
+
+    header = file_target.mem;
     Elf64_Phdr *ph_table = file_target.mem + header->e_phoff;
     for (int i = 0; i < header->e_phnum; i++) {
         Elf64_Phdr *ph = ph_table + i;
         if (ph->p_flags == (PF_R | PF_X)) {
 
-            uint64_t builder_size = 0x13a;
+            uint64_t builder_size = section_header_text->sh_size;
+            uint64_t builder_start_offset_source = section_header_text->sh_offset;
             void *builder_start_target = file_target.mem + ph->p_offset + ph->p_filesz;
-            void *builder_start_source = file_source.mem + 0x440;
+            void *builder_start_source = file_source.mem + builder_start_offset_source;
             memcpy(builder_start_target, builder_start_source, builder_size);
             ph->p_filesz += builder_size;
             ph->p_memsz += builder_size;
