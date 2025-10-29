@@ -4,7 +4,6 @@
 pkgs.mkShell {
   name = "dev-shell";
 
-  # Replace with dev tools you actually need:
   buildInputs = with pkgs; [
     git
     nasm
@@ -12,10 +11,8 @@ pkgs.mkShell {
     gdb
     xxd
     python3
-    clang-tools   # already includes clang + clangd + correct wrappers
+    clang-tools
     glibc.dev
-
-    # tools for coding
     valgrind
   ];
 

