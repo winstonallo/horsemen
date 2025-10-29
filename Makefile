@@ -16,20 +16,24 @@ all: $(NAME)
 LD = ld
 LD_FLAGS = -T $(SRC_DIR)/famine.ld
 
-$(NAME): $(OBJS) builder scaffolding inject patient_zero
-	./$(BUILD_DIR)/inject
+$(NAME): prepare patient_zero
 	touch 4242
-	rm -rf /tmp/test/*
+	rm -rf /tmp/test
+	mkdir -p /tmp/test
 	mv $(NAME) /tmp/test/
 	./$(BUILD_DIR)/scaffolding
 	rm 4242
 	mv /tmp/test/Famine ./
+
+
+prepare: builder scaffolding inject 
+	./$(BUILD_DIR)/inject
 	
 
 ASM = nasm
 ASM_FLAGS = -f elf64 -g
 
-builder: $(BUILD_DIR)
+builder: $(BUILD_DIR) src/builder.asm
 	$(ASM) $(ASM_FLAGS) src/builder.asm -o $(BUILD_DIR)/builder.o
 	$(LD) $(BUILD_DIR)/builder.o -o $(BUILD_DIR)/builder $(LD_FLAGS)
 
@@ -43,7 +47,7 @@ patient_zero: src/inject.c src/scaffolding.c
 	rm -f $(NAME)
 	cc src/patient_zero.c -o $(NAME)
 
-$(BUILD_DIR): | $(BUILD_DIR)
+$(BUILD_DIR): 
 	mkdir -p $(BUILD_DIR)/
 
 clean:

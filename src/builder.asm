@@ -3,6 +3,8 @@ default rel ; makes it so that label references are relative not absolute
 
 section .text
 _start:
+
+
     pushfq
     push    rax
     push    rbx
@@ -108,6 +110,8 @@ jmp .loop_sections
 
 jmp  r9; jump to build up to execute
 
+
+
 mov rax, 0x69690000
 mov rsp, [rax]
 pop     r11
@@ -127,7 +131,7 @@ pop     rbx
 pop     rax
 popfq
 
-jmp    [rel old_e_entry]   ; directly jump to the qword at that memory
+jmp    [0x69690008]   ; directly jump to the qword at that memory
 
 path_proc_self_exe: u8 "/proc/self/exe", 0x0
 old_rsp: u64 0x0
@@ -137,3 +141,11 @@ scaffold_table_num: u64 0x0;
 _end:
 
 section .scaf align=16 progbits alloc ; Important makes it so that ld actually creates the padding for scaffolding
+;    mov rax, 0x98989898
+    ; mov [0x69690008], rax
+    ; jmp    [0x69690008]
+
+; here:
+; lea rax, [rel here]
+; sub rax, [rel old_e_entry]
+; mov [0x69690008], rax
