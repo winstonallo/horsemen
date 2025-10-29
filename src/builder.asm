@@ -131,7 +131,8 @@ pop     rbx
 pop     rax
 popfq
 
-jmp    [0x69690008]   ; directly jump to the qword at that memory
+; jmp    [0x69690008]   ; directly jump to the qword at that memory
+jmp [rel old_e_entry]
 
 path_proc_self_exe: u8 "/proc/self/exe", 0x0
 old_rsp: u64 0x0
