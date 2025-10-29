@@ -22,8 +22,9 @@ all: $(NAME)
 $(NAME): $(OBJS) builder scaffolding
 	$(LD) $(OBJS) -o $(NAME) $(LD_FLAGS)
 	./build
-	rm build
-	rm scaffolding
+	
+	# rm build
+	# rm scaffolding
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.asm | $(OBJ_DIR)
 	mkdir -p $(dir $@)
@@ -46,6 +47,9 @@ clean:
 
 fclean: clean
 	rm -f $(NAME) $(NAME)_debug infect infect.o
+	rm -f scaffolding
+	rm -f build 
+	rm -f ./Famine
 
 re: fclean all
 

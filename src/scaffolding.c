@@ -84,7 +84,12 @@ jump_back(int fd_self) {
     file_mmap(fd_self, &file_self);
 
     uint64_t old_entry = old_entry_get(&file_self);
-    if (old_entry == 0) ft_exit(0);
+
+    int fd_is_incubator = ft_open("./incubator_4242", O_RDONLY, 0);
+    if (fd_is_incubator > 0) {
+        ft_close(fd_is_incubator);
+        ft_exit(0);
+    }
 
     Elf64_Ehdr *header = file_self.mem;
     uint64_t jump_to = header->e_entry + BUILDER_RE_ENTRY_OFFSET;

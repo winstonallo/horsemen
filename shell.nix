@@ -22,6 +22,6 @@ pkgs.mkShell {
   shellHook = ''
     export DEV_ENV=1
 
-    sudo sysctl -w vm.mmap_min_addr=0
+    #sudo sysctl -w vm.mmap_min_addr=0
   '';
 }

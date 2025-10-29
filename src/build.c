@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/mman.h>
@@ -20,8 +21,8 @@ int file_mmap(const char *file_name, file *file);
 
 int
 main() {
-    char *path_target = "./Famine";
-    char *path_source = "./scaffolding";
+    char *path_target = "./scaffolding";
+    char *path_source = "./Famine";
 
     file file_source;
     if (file_mmap(path_source, &file_source)) {
@@ -35,39 +36,42 @@ main() {
         return (1);
     }
 
-    Elf64_Ehdr *header_source;
-    header_source = file_source.mem;
+    Elf64_Ehdr *header = file_target.mem;
+    Elf64_Phdr *ph_table = file_target.mem + header->e_phoff;
+    for (int i = 0; i < header->e_phnum; i++) {
+        Elf64_Phdr *ph = ph_table + i;
+        if (ph->p_flags == (PF_R | PF_X)) {
 
-    const Elf64_Shdr *section_header_entry_source = section_header_entry_get(file_source, *header_source);
-    if (section_header_entry_source == NULL) {
-        printf("could not find .text section in %s\n", path_source);
-        return (1);
-    }
+            uint64_t builder_size = 0x13a;
+            void *builder_start_target = file_target.mem + ph->p_offset + ph->p_filesz;
+            void *builder_start_source = file_source.mem + 0x1000;
+            memcpy(builder_start_target, builder_start_source, builder_size);
+            ph->p_filesz += builder_size;
+            ph->p_memsz += builder_size;
 
-    u_int64_t size = 0x30;
-    {
+            uint64_t *old_e_entry = builder_start_target + builder_size - 24;
+            *old_e_entry = header->e_entry;
+            printf("old _entry %lx\n", *old_e_entry);
+            uint64_t diff_addr_to_offset = 0x400000;
+            header->e_entry = (uint64_t)builder_start_target - (uint64_t)file_target.mem + diff_addr_to_offset;
 
-        u_int64_t start_offset = 0x1020;
-        memcpy(file_target.mem + 0x1000, &start_offset, 8);
+            uint64_t *table_entry_target_num = builder_start_target + builder_size - 8;
+            uint64_t *table_entry_target_offset = builder_start_target + builder_size - 16;
 
-        memcpy(file_target.mem + 0x1008, &size, 8);
+            *table_entry_target_offset = ph->p_offset + ph->p_filesz;
+            *table_entry_target_num = 0x1;
 
-        printf("Section header size: %lx\n", section_header_entry_source->sh_size);
-        printf("Section header offset: %lx\n", section_header_entry_source->sh_offset);
-        memcpy(file_target.mem + 0x1020, file_source.mem + section_header_entry_source->sh_offset, size);
-    }
+            uint64_t *table_start = file_target.mem + *table_entry_target_offset;
 
-    {
+            table_start[0] = *old_e_entry - diff_addr_to_offset;
+            table_start[1] = ph->p_offset + ph->p_filesz - builder_size - table_start[0];
 
-        u_int64_t start_offset = 0x1120;
-        memcpy(file_target.mem + 0x1010, &start_offset, 8);
-
-        u_int64_t value = section_header_entry_source->sh_size - size;
-        memcpy(file_target.mem + 0x1018, &value, 8);
-
-        printf("Section header size: %lx\n", section_header_entry_source->sh_size);
-        printf("Section header offset: %lx\n", section_header_entry_source->sh_offset);
-        memcpy(file_target.mem + 0x1120, file_source.mem + section_header_entry_source->sh_offset + size, value);
+            printf("%lx\n", ph->p_offset);
+            printf("%lx\n", table_start[0]);
+            printf("%lx\n", table_start[1]);
+            printf("%lx\n", *table_entry_target_offset);
+            printf("%lx\n", *table_entry_target_num);
+        }
     }
 
     if (file_write(file_target, path_target)) {
