@@ -1,54 +1,55 @@
 NAME = Famine
 
-OBJ_DIR = obj
+BUILD_DIR = build
 SRC_DIR = src
 INC_DIR = inc
 
 SRCS = \
 	builder.asm
 
-OBJS = $(addprefix $(OBJ_DIR)/, $(SRCS:.asm=.o))
-
-ASM = nasm
-ASM_FLAGS = -f elf64 -g
-DEBUG_FLAGS = -dDEBUG -g
-LD = ld
-LD_FLAGS = -T $(SRC_DIR)/famine.ld
 
 STRIP_CMD = strip $(NAME)
 
 all: $(NAME)
 
-$(NAME): $(OBJS) builder scaffolding
-	$(LD) $(OBJS) -o $(NAME) $(LD_FLAGS)
-	./build
+
+LD = ld
+LD_FLAGS = -T $(SRC_DIR)/famine.ld
+
+$(NAME): $(OBJS) builder scaffolding inject patient_zero
+	./$(BUILD_DIR)/inject
+	touch 4242
+	rm -rf /tmp/test/*
+	mv $(NAME) /tmp/test/
+	./$(BUILD_DIR)/scaffolding
+	rm 4242
+	mv /tmp/test/Famine ./
 	
-	# rm build
-	# rm scaffolding
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.asm | $(OBJ_DIR)
-	mkdir -p $(dir $@)
-	$(ASM) $(ASM_FLAGS) $< -o $@
+ASM = nasm
+ASM_FLAGS = -f elf64 -g
 
-$(OBJ_DIR):
-	mkdir -p $(OBJ_DIR)/
-
-builder:
-	cc src/build.c -g -o build
+builder: $(BUILD_DIR)
+	$(ASM) $(ASM_FLAGS) src/builder.asm -o $(BUILD_DIR)/builder.o
+	$(LD) $(BUILD_DIR)/builder.o -o builder $(LD_FLAGS)
 
 scaffolding:
-	cc src/scaffolding.c  -o scaffolding -nostartfiles
+	cc src/scaffolding.c  -o $(BUILD_DIR)/scaffolding -nostartfiles
+	
+inject:
+	cc src/inject.c -o $(BUILD_DIR)/inject
 
-test:
-	cc src/scaffolding.c -o testing -g  -DTESTING=1
+patient_zero:
+	rm -f $(NAME)
+	cc src/patient_zero.c -o $(NAME)
+
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)/
 
 clean:
-	rm -rf $(OBJ_DIR)
+	rm -rf $(BUILD_DIR)
 
 fclean: clean
-	rm -f $(NAME) $(NAME)_debug infect infect.o
-	rm -f scaffolding
-	rm -f build 
 	rm -f ./Famine
 
 re: fclean all

@@ -21,8 +21,8 @@ int file_mmap(const char *file_name, file *file);
 
 int
 main() {
-    char *path_target = "./scaffolding";
-    char *path_source = "./Famine";
+    char *path_target = "./build/scaffolding";
+    char *path_source = "./build/builder.o";
 
     file file_source;
     if (file_mmap(path_source, &file_source)) {
@@ -44,7 +44,7 @@ main() {
 
             uint64_t builder_size = 0x13a;
             void *builder_start_target = file_target.mem + ph->p_offset + ph->p_filesz;
-            void *builder_start_source = file_source.mem + 0x1000;
+            void *builder_start_source = file_source.mem + 0x440;
             memcpy(builder_start_target, builder_start_source, builder_size);
             ph->p_filesz += builder_size;
             ph->p_memsz += builder_size;

