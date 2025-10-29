@@ -110,7 +110,11 @@ jmp .loop_sections
 
 jmp  r9; jump to build up to execute
 
-
+;
+; here:
+; lea rax, [rel here]
+; sub rax, [rel old_e_entry]
+; mov [0x69690008], rax
 
 mov rax, 0x69690000
 mov rsp, [rax]
