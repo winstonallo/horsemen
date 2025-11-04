@@ -7,28 +7,18 @@ INC_DIR = inc
 SRCS = \
 	builder.asm
 
-
 STRIP_CMD = strip $(NAME)
 
 all: $(NAME)
-
 
 LD = ld
 LD_FLAGS = -T $(SRC_DIR)/famine.ld
 
 $(NAME): prepare patient_zero
-	touch 4242
-	rm -rf /tmp/test
-	mkdir -p /tmp/test
-	mv $(NAME) /tmp/test/
-	./$(BUILD_DIR)/scaffolding
-	rm 4242
-	mv /tmp/test/Famine ./
+	mv ./$(BUILD_DIR)/scaffolding ./Famine
 
-
-prepare: builder scaffolding inject 
+prepare: builder scaffolding inject
 	./$(BUILD_DIR)/inject
-	
 
 ASM = nasm
 ASM_FLAGS = -f elf64 -g
@@ -39,7 +29,7 @@ builder: $(BUILD_DIR) src/builder.asm
 
 scaffolding: src/scaffolding.c
 	cc src/scaffolding.c  -o $(BUILD_DIR)/scaffolding -nostartfiles
-	
+
 inject: src/inject.c
 	cc src/inject.c -o $(BUILD_DIR)/inject
 
@@ -47,7 +37,7 @@ patient_zero: src/inject.c src/scaffolding.c
 	rm -f $(NAME)
 	cc src/patient_zero.c -o $(NAME)
 
-$(BUILD_DIR): 
+$(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)/
 
 clean:
