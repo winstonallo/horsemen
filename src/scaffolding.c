@@ -156,8 +156,8 @@ __attribute__((always_inline)) static inline uint64_t parse_hex(volatile char* h
 }
 
 __attribute__((always_inline)) static inline uint64_t get_base_address() {
-    volatile static char mappings_path[16];
-    volatile char buffer[400];
+    volatile char mappings_path[16];
+    volatile char buffer[400] = {0};
 
     mappings_path[0] = '/';
     mappings_path[1] = 'p';
@@ -178,14 +178,20 @@ __attribute__((always_inline)) static inline uint64_t get_base_address() {
 
     int fd = ft_open(mappings_path, O_RDONLY, 0);
 
-    // ft_read(fd, buffer, sizeof(buffer));
+    ft_read(fd, buffer, sizeof(buffer));
 
+
+    uint64_t addr = 0;
     for (int idx = 0; idx < sizeof(buffer); ++idx) {
         if (buffer[idx] == '\n') {
-            // return parse_hex(&buffer[idx + 1]);
+            addr = parse_hex(buffer + idx + 1);
         }
     }
-    return 0;
+    char nl = '\n';
+    ft_write(1, &nl, 1);
+    print_number_hex(addr);
+    ft_write(1, &nl, 1);
+    return addr;
 }
 
 __attribute__((always_inline)) static inline void
