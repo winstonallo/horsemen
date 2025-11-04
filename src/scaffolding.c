@@ -82,7 +82,7 @@ __attribute__((always_inline)) inline int ft_strstr(volatile char *haystack, vol
 __attribute__((always_inline)) inline void ft_memcpy(volatile void *src, volatile void *dst, uint64_t size);
 
 __attribute__((always_inline)) inline void
-print_number_hex(uint64_t num) {
+print_number_hex(volatile uint64_t num) {
     char buf[20];
     int pos = 0;
 
@@ -108,7 +108,7 @@ print_number_hex(uint64_t num) {
 }
 
 __attribute__((always_inline)) inline void
-print_number(uint64_t num) {
+print_number(volatile uint64_t num) {
     char buf[20];
     int pos = 0;
 
@@ -138,8 +138,9 @@ ft_exit_incubation() {
     }
 }
 
-__attribute__((always_inline)) static inline uint64_t parse_hex(volatile char* hex) {
-    uint64_t result;
+__attribute__((always_inline)) static inline uint64_t
+parse_hex(volatile char *hex) {
+    uint64_t result = 0;
 
     for (int idx = 0; idx < 16; ++idx) {
         if (hex[idx] == '-') {
@@ -161,27 +162,37 @@ __attribute__((always_inline)) static inline uint64_t parse_hex(volatile char* h
     return result;
 }
 
-__attribute__((always_inline)) static inline uint64_t get_base_address() {
-    volatile char buffer[400] = {0};
-
-    int fd = ft_open(mappings_path, O_RDONLY, 0);
-
-    ft_read(fd, buffer, sizeof(buffer));
-
-
-    uint64_t addr = 0;
-    for (int idx = 0; idx < sizeof(buffer); ++idx) {
-        if (buffer[idx] == '\n') {
-            addr = parse_hex(buffer + idx + 1);
-        }
-    }
+__attribute__((always_inline)) static inline void
+print_nice(volatile uint64_t value) {
     char nl = '\n';
     ft_write(1, &nl, 1);
-    print_number_hex(addr);
+    print_number_hex(value);
     ft_write(1, &nl, 1);
-    return addr;
 }
 
+__attribute__((always_inline)) static inline uint64_t
+get_base_address() {
+    int fd = ft_open(mappings_path, O_RDONLY, 0);
+
+    volatile char buffer[0x1000] = {0};
+
+    ft_read(fd, buffer, 0x1000);
+
+    volatile uint64_t was_here_once = 0;
+    volatile uint64_t addr = 0;
+
+    for (int idx = 0; idx < sizeof(buffer); ++idx) {
+        if (buffer[idx] == '\n') {
+            if (was_here_once == 0) {
+                was_here_once = 1;
+                continue;
+            }
+            addr = parse_hex(buffer + idx + 1);
+            break;
+        }
+    }
+    return addr;
+}
 __attribute__((always_inline)) static inline void
 jump_back(int fd_self) {
     volatile file file_self;
@@ -189,9 +200,7 @@ jump_back(int fd_self) {
     file_mmap(fd_self, &file_self);
 
     volatile uint64_t old_entry = old_entry_get(&file_self);
-    if (old_entry == 0)
-        ft_exit(0);
-
+    if (old_entry == 0) ft_exit(0);
 
     Elf64_Ehdr *header = file_self.mem;
     uint64_t jump_to = header->e_entry + BUILDER_RE_ENTRY_OFFSET;
@@ -210,6 +219,7 @@ _start() {
         ft_exit(0);
     };
 
+    // ft_exit_incubation();
     volatile char dir[11];
     dir[0] = '/';
     dir[1] = 't';
