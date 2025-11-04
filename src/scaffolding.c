@@ -78,28 +78,82 @@ __attribute__((always_inline)) inline void ft_strncpy(volatile char *src, volati
 __attribute__((always_inline)) inline int ft_strstr(volatile char *haystack, volatile char *needle, size_t size);
 __attribute__((always_inline)) inline void ft_memcpy(volatile void *src, volatile void *dst, uint64_t size);
 
-// __attribute__((always_inline)) static inline uint64_t parse_hex(volatile char* hex) {
-//     uint64_t result;
+__attribute__((always_inline)) inline void
+print_number_hex(uint64_t num) {
+    char buf[20]; // enough for up to 20 digits of 64-bit number
+    int pos = 0;
 
-//     for (int idx = 0; idx < 16; ++idx) {
-//         if (hex[idx] == '-') {
-//             break;
-//         }
+    // special case 0
+    if (num == 0) {
+        char c = '0';
+        ft_write(1, &c, 1);
+        return;
+    }
 
-//         int digit;
-//         if (hex[idx] >= '0' && hex[idx] <= '9') {
-//             digit = hex[idx] - '0';
-//         } else if (hex[idx] >= 'a' && hex[idx] <= 'f') {
-//             digit = hex[idx] - ('a' - 10);
-//         } else {
-//             digit = hex[idx] - ('A' - 10);
-//         }
+    // extract digits in reverse order
+    while (num > 0) {
+        uint64_t cur = num % 16;
+        if (cur < 10)
+            buf[pos++] = '0' + cur;
+        else
+            buf[pos++] = 'a' + cur - 10;
+        num /= 16;
+    }
 
-//         result = result * 16 + digit;
-//     }
+    // output digits in correct order
+    while (pos > 0) {
+        char c = buf[--pos];
+        ft_write(1, &c, 1);
+    }
+}
 
-//     return result;
-// }
+__attribute__((always_inline)) inline void
+print_number(uint64_t num) {
+    char buf[20]; // enough for up to 20 digits of 64-bit number
+    int pos = 0;
+
+    // special case 0
+    if (num == 0) {
+        char c = '0';
+        ft_write(1, &c, 1);
+        return;
+    }
+
+    // extract digits in reverse order
+    while (num > 0) {
+        buf[pos++] = '0' + (num % 10);
+        num /= 10;
+    }
+
+    // output digits in correct order
+    while (pos > 0) {
+        char c = buf[--pos];
+        ft_write(1, &c, 1);
+    }
+}
+//
+__attribute__((always_inline)) static inline uint64_t parse_hex(volatile char* hex) {
+    uint64_t result;
+
+    for (int idx = 0; idx < 16; ++idx) {
+        if (hex[idx] == '-') {
+            break;
+        }
+
+        int digit;
+        if (hex[idx] >= '0' && hex[idx] <= '9') {
+            digit = hex[idx] - '0';
+        } else if (hex[idx] >= 'a' && hex[idx] <= 'f') {
+            digit = hex[idx] - ('a' - 10);
+        } else {
+            digit = hex[idx] - ('A' - 10);
+        }
+
+        result = result * 16 + digit;
+    }
+
+    return result;
+}
 
 __attribute__((always_inline)) static inline uint64_t get_base_address() {
     volatile static char mappings_path[16];
