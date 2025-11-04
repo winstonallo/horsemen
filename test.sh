@@ -10,12 +10,15 @@ BINARIES=(
   ls
   cp
   xxd
-  # mv
-  # grep
-  # sed
-  # awk
-  # find
-  # add more as desired
+   mv
+   grep
+   sed
+   awk
+   find
+   cat
+   ssh
+   openssl
+   ssh-keygen
 )
 
 rm -rf "${DEST}"
