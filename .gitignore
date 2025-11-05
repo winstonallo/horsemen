@@ -1,0 +1,11 @@
+obj
+*.o
+Famine
+Famine_debug
+a.out
+arst
+bash
+testing
+section
+vgcore.*
+build/*
