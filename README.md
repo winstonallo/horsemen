@@ -2,7 +2,9 @@
 
 This program is tested in controlled lab environments as part of a binary analysis course and serves educational purposes only.
 
-## Configuring GDB GDB uses AT&T syntax by default. If you prefer Intel syntax for debugging, follow these steps for GDB to use the latter:
+## Configuring GDB
+
+GDB uses AT&T syntax by default. If you prefer Intel syntax for debugging, follow these steps for GDB to use the latter:
 
 ```
 sh echo "add-auto-load-safe-path /.gdbinit" >> ~/.gdbinit
