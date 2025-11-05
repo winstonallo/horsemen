@@ -76,11 +76,6 @@ main() {
             table_start[1] = ph->p_offset + ph->p_filesz - builder_size - table_start[0];
 
             *old_e_entry = 0;
-            printf("%lx\n", ph->p_offset);
-            printf("%lx\n", table_start[0]);
-            printf("%lx\n", table_start[1]);
-            printf("%lx\n", *table_entry_target_offset);
-            printf("%lx\n", *table_entry_target_num);
         }
     }
 
