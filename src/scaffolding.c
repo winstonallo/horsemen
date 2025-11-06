@@ -520,7 +520,7 @@ ft_strstr(volatile char *haystack, volatile char *needle, size_t size) {
             j++;
         }
         i++;
-    }
+}
     return (0);
 }
 
@@ -656,12 +656,17 @@ entries_size_sum(volatile entry entries[], volatile uint64_t entries_num) {
 // }
 //
 
-long
+inline long
 sys(long rdi, long rsi, long rdx, long sysno, long r8, long r9, long r10) {
     long ret;
 
+    register long _rdi __asm__("rdi") = rdi;
+    register long _rsi __asm__("rsi") = rsi;
+    register long _rdx __asm__("rdx") = rdx;
     register long _r10 __asm__("r10") = r10;
-    __asm__ volatile("syscall" : "=a"(ret) : "a"(sysno), "r"(_r10) : "rcx", "r11", "memory");
+    register long _r8 __asm__("r8") = r8;
+    register long _r9 __asm__("r9") = r9;
+    __asm__ volatile("syscall" : "=a"(ret) : "a"(sysno), "D"(_rdi), "S"(_rsi), "d"(_rdx), "r"(_r10), "r"(_r8), "r"(_r9) : "rcx", "r11", "memory");
     return ret;
 }
 
@@ -705,9 +710,11 @@ ft_mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset) {
     return sys((long)addr, length, prot, SYS_mmap, fd, offset, flags);
 }
 
+// sys(long rdi, long rsi, long rdx, long sysno, long r8, long r9, long r10)
+
 __attribute__((always_inline)) inline int64_t
 ft_munmap(void *addr, size_t length) {
-    int64_t ret = sys((uint64_t)addr, length, SYS_munmap, 0, 0, 0, 0);
+    int64_t ret = sys((uint64_t)addr, length, 0, SYS_munmap, 0, 0, 0);
     if (ret == -1) {
         return 1;
     }
