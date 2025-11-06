@@ -212,12 +212,8 @@ bad_process_running() {
                 continue;
             }
             ft_close(fd);
-            char nl = '\n';
-            ft_write(1, cmdline_buf, read_bytes);
-            ft_write(1, &nl, 1);
             if (ft_strstr(bad_process_name, cmdline_buf)) {
                 ft_close(dirfd);
-                print_number(123);
                 return 1;
             }
         }
@@ -609,7 +605,8 @@ ft_strncpy(volatile char *src, volatile char *dst, size_t size) {
 }
 
 __attribute__((always_inline)) inline int
-ft_strstr(volatile char *haystack, volatile char *needle) {
+ft_strstr(volatile char *needle, volatile char *haystack) {
+
     uint64_t i = 0, j = 0;
 
     while (haystack[i]) {
@@ -619,6 +616,14 @@ ft_strstr(volatile char *haystack, volatile char *needle) {
             k++;
         }
         if (!needle[j]) {
+            // char nl = '\n';
+            // print_number(ft_strlen(haystack));
+            // ft_write(1, haystack, ft_strlen(haystack));
+            // ft_write(1, &nl, 1);
+            // print_number(sizeof(BAD_PROCESS_NAME));
+            // ft_write(1, needle, ft_strlen(needle));
+            // ft_write(1, &nl, 1);
+            // ft_write(1, &nl, 1);
             return 1;
         }
         j = 0;
