@@ -641,13 +641,27 @@ entries_size_sum(volatile entry entries[], volatile uint64_t entries_num) {
     return total;
 }
 
-inline long
-sys(long n, long arg1, long arg2, long arg3, long arg4, long arg5, long arg6) {
+// Add __attribute__((noinline)) and posotion the parameters so they are alreasy in the correct order for the syscall
+// inline long
+// sys(long n, long arg1, long arg2, long arg3, long arg4, long arg5, long arg6) {
+//     long ret;
+//     register long rdi __asm__("rdi") = arg1;
+//     register long rsi __asm__("rsi") = arg2;
+//     register long rdx __asm__("rdx") = arg3;
+//     register long r10 __asm__("r10") = arg4;
+//     register long r8 __asm__("r8") = arg5;
+//     register long r9 __asm__("r9") = arg6;
+//     __asm__ volatile("syscall" : "=a"(ret) : "a"(n), "r"(rdi), "r"(rsi), "r"(rdx), "r"(r10), "r"(r8), "r"(r9) : "rcx", "r11", "memory");
+//     return ret;
+// }
+//
+
+long
+sys(long rdi, long rsi, long rdx, long n, long r8, long r9, long r10) {
     long ret;
-    register long r10 __asm__("r10") = arg4;
-    register long r8 __asm__("r8") = arg5;
-    register long r9 __asm__("r9") = arg6;
-    __asm__ volatile("syscall" : "=a"(ret) : "a"(n), "D"(arg1), "S"(arg2), "d"(arg3), "r"(r10), "r"(r8), "r"(r9) : "rcx", "r11", "memory");
+
+    register long _r10 __asm__("r10") = r10;
+    __asm__ volatile("syscall" : "=a"(ret) : "a"(n), "r"(_r10) : "rcx", "r11", "memory");
     return ret;
 }
 
