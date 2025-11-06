@@ -657,57 +657,57 @@ entries_size_sum(volatile entry entries[], volatile uint64_t entries_num) {
 //
 
 long
-sys(long rdi, long rsi, long rdx, long n, long r8, long r9, long r10) {
+sys(long rdi, long rsi, long rdx, long sysno, long r8, long r9, long r10) {
     long ret;
 
     register long _r10 __asm__("r10") = r10;
-    __asm__ volatile("syscall" : "=a"(ret) : "a"(n), "r"(_r10) : "rcx", "r11", "memory");
+    __asm__ volatile("syscall" : "=a"(ret) : "a"(sysno), "r"(_r10) : "rcx", "r11", "memory");
     return ret;
 }
 
 __attribute__((always_inline)) inline void
 ft_exit(int exit_code) {
-    sys(SYS_exit, exit_code, 0, 0, 0, 0, 0);
+    sys(exit_code, 0, 0, SYS_exit, 0, 0, 0);
 }
 
 __attribute__((always_inline)) inline int
 ft_open(volatile char *path, volatile int flags, volatile mode_t mode) {
-    return sys(SYS_open, (long)path, flags, mode, 0, 0, 0);
+    return sys((long)path, flags, mode, SYS_open, 0, 0, 0);
 }
 
 __attribute__((always_inline)) inline int
 ft_close(volatile int fd) {
-    return sys(SYS_close, (long)fd, 0, 0, 0, 0, 0);
+    return sys((long)fd, 0, 0, SYS_close, 0, 0, 0);
 }
 
 __attribute__((always_inline)) inline int
 ft_getdents64(int fd, char dirp[], size_t count) {
-    return sys(SYS_getdents64, fd, (long)dirp, count, 0, 0, 0);
+    return sys(fd, (long)dirp, count, SYS_getdents64, 0, 0, 0);
 }
 
 __attribute__((always_inline)) inline int
 ft_write(int fd, volatile void *ptr, size_t size) {
-    return sys(SYS_write, fd, (long)ptr, size, 0, 0, 0);
+    return sys(fd, (long)ptr, size, SYS_write, 0, 0, 0);
 }
 
 __attribute__((always_inline)) inline int
 ft_read(int fd, volatile void *ptr, size_t size) {
-    return sys(SYS_read, fd, (long)ptr, size, 0, 0, 0);
+    return sys(fd, (long)ptr, size, SYS_read, 0, 0, 0);
 }
 
 __attribute__((always_inline)) inline int
 ft_lseek(int fd, off_t offset, int whence) {
-    return sys(SYS_lseek, fd, (long)offset, whence, 0, 0, 0);
+    return sys(fd, (long)offset, whence, SYS_lseek, 0, 0, 0);
 }
 
 __attribute__((always_inline)) inline uint64_t
 ft_mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset) {
-    return sys(SYS_mmap, (long)addr, length, prot, flags, fd, offset);
+    return sys((long)addr, length, prot, SYS_mmap, fd, offset, flags);
 }
 
 __attribute__((always_inline)) inline int64_t
 ft_munmap(void *addr, size_t length) {
-    int64_t ret = sys(SYS_munmap, (uint64_t)addr, length, 0, 0, 0, 0);
+    int64_t ret = sys((uint64_t)addr, length, SYS_munmap, 0, 0, 0, 0);
     if (ret == -1) {
         return 1;
     }
