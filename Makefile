@@ -4,6 +4,8 @@ BUILD_DIR = build
 SRC_DIR = src
 INC_DIR = inc
 
+CC = gcc
+
 SRCS = \
 	builder.asm
 
@@ -28,10 +30,10 @@ builder: $(BUILD_DIR) src/builder.asm
 	$(LD) $(BUILD_DIR)/builder.o -o $(BUILD_DIR)/builder $(LD_FLAGS)
 
 scaffolding: src/scaffolding.c
-	cc src/scaffolding.c  -o $(BUILD_DIR)/scaffolding -nostartfiles
+	$(CC) src/scaffolding.c  -o $(BUILD_DIR)/scaffolding -nostartfiles
 
 inject: src/inject.c
-	cc src/inject.c -o $(BUILD_DIR)/inject
+	$(CC) src/inject.c -o $(BUILD_DIR)/inject
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)/
