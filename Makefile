@@ -14,7 +14,7 @@ all: $(NAME)
 LD = ld
 LD_FLAGS = -T $(SRC_DIR)/famine.ld
 
-$(NAME): prepare patient_zero
+$(NAME): prepare
 	mv ./$(BUILD_DIR)/scaffolding ./Famine
 
 prepare: builder scaffolding inject
@@ -32,10 +32,6 @@ scaffolding: src/scaffolding.c
 
 inject: src/inject.c
 	cc src/inject.c -o $(BUILD_DIR)/inject
-
-patient_zero: src/inject.c src/scaffolding.c
-	rm -f $(NAME)
-	cc src/patient_zero.c -o $(NAME)
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)/
