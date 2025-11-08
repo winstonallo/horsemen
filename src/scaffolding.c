@@ -24,11 +24,11 @@ __attribute__((section(".text"))) volatile static char incubation[] = "4242";
 __attribute__((section(".text"))) volatile static char bad_process_name[] = BAD_PROCESS_NAME;
 
 typedef struct {
-    uint64_t d_ino;          /* 64-bit inode number */
-    uint64_t d_off;          /* Not an offset; see getdents() */
-    unsigned short d_reclen; /* Size of this dirent */
-    unsigned char d_type;    /* File type */
-    char d_name[];           /* Filename (null-terminated) */
+    uint64_t d_ino;
+    uint64_t d_off;
+    unsigned short d_reclen;
+    unsigned char d_type;
+    char d_name[];
 } dirent64;
 
 typedef struct {
