@@ -13,6 +13,10 @@ pkgs.mkShell {
     python3
     clang-tools
     valgrind
+    glibc
+    llvmPackages_21.clang
+    llvmPackages_21.clang-tools
+    gcc
   ];
 
   shellHook = ''
