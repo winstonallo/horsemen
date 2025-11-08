@@ -5,6 +5,7 @@ SRC_DIR = src
 INC_DIR = inc
 
 CC = gcc
+CCFLAGS = -funroll-loops -frename-registers -fno-inline -fmerge-all-constants -s -O3
 ASM = nasm
 LD = ld
 
@@ -34,10 +35,10 @@ $(BIN_BUILDER): $(OBJ_BUILDER)
 	$(LD) $< -o $@ $(LD_FLAGS) > /dev/null 2>&1
 
 $(BIN_SCAFFOLD): $(SRC_DIR)/scaffolding.c | $(BUILD_DIR)
-	$(CC) $< -o $@ -nostartfiles > /dev/null 2>&1
+	$(CC) $(CCFLAGS) $< -o $@ -nostartfiles > /dev/null 2>&1
 
 $(BIN_INJECT): $(SRC_DIR)/inject.c | $(BUILD_DIR)
-	$(CC) $< -o $@ > /dev/null 2>&1
+	$(CC) $(CCFLAGS) $< -o $@ > /dev/null 2>&1
 
 $(BUILD_DIR):
 	mkdir -p $@
