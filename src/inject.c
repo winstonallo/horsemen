@@ -13,24 +13,24 @@
 typedef struct {
     void *mem;
     size_t size;
-} file;
+} File;
 
-int file_write(file file, char *file_path);
-const Elf64_Shdr *section_header_entry_get(file file, const Elf64_Ehdr header);
-int file_mmap(const char *file_name, file *file);
+int file_write(File file, char *file_path);
+const Elf64_Shdr *section_header_entry_get(File file, const Elf64_Ehdr header);
+int file_mmap(const char *file_name, File *file);
 
 int
 main() {
     char *path_target = "./build/scaffolding";
     char *path_source = "./build/builder";
 
-    file file_source;
+    File file_source;
     if (file_mmap(path_source, &file_source)) {
         printf("error allocating %s\n", path_source);
         return (1);
     }
 
-    file file_target;
+    File file_target;
     if (file_mmap(path_target, &file_target)) {
         printf("error allocating %s\n", path_target);
         return (1);
@@ -88,7 +88,7 @@ main() {
 }
 
 const Elf64_Shdr *
-section_header_entry_get(file file, const Elf64_Ehdr header) {
+section_header_entry_get(File file, const Elf64_Ehdr header) {
     assert(file.mem != NULL);
     assert(header.e_shoff + header.e_shnum * header.e_shentsize <= file.size);
 
@@ -106,12 +106,12 @@ section_header_entry_get(file file, const Elf64_Ehdr header) {
 }
 
 int
-file_munmap(const file file) {
+file_munmap(const File file) {
     return munmap(file.mem, file.size);
 }
 
 int
-file_mmap(const char *file_name, file *file) {
+file_mmap(const char *file_name, File *file) {
     assert(file_name != NULL);
     assert(file != NULL);
 
@@ -156,7 +156,7 @@ file_mmap(const char *file_name, file *file) {
 }
 
 int
-file_write(file file, char *file_path) {
+file_write(File file, char *file_path) {
     int fd = open(file_path, O_CREAT | O_RDWR, 0755);
     if (fd == -1) {
         perror("woody");
