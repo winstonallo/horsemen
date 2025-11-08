@@ -620,6 +620,9 @@ ft_strncpy(volatile char *src, volatile char *dst, size_t size) {
         dst[i] = src[i];
 }
 
+// For some mysterious reason, `bad_process_name` seems not to be null-terminated,
+// leading valgrind to report a conditional jump depending on uninitialized value(s).
+// This is the "fix".
 __attribute__((always_inline)) inline int
 ft_strnstr_with_max_needle_size(volatile char *haystack, volatile char *needle, size_t size, size_t needle_size) {
     int i = 0;
