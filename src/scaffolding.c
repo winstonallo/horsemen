@@ -623,16 +623,16 @@ ft_strncpy(volatile char *src, volatile char *dst, size_t size) {
 
 // just dont ask
 __attribute__((always_inline)) inline int
-ft_sstrnstr(volatile char *haystack, volatile char *needle, size_t size, size_t NEEDLE_SIZE) {
+ft_sstrnstr(volatile char *haystack, volatile char *needle, size_t size, size_t needle_size) {
     int i = 0;
     int j;
 
-    while ((i + NEEDLE_SIZE) < size) {
+    while ((i + needle_size) < size) {
         j = 0;
         while ((i + j) < (size)) {
             char c = '\n';
             if (haystack[i + j] != needle[j]) break;
-            if (j == (NEEDLE_SIZE - 1)) {
+            if (j == (needle_size - 1)) {
                 return (1);
             }
             j++;
