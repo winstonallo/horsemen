@@ -15,7 +15,7 @@
 #define BAD_PROCESS_NAME "valgrind"
 #endif
 
-__attribute__((section(".text"))) volatile static char signatur[] = "Famine | abied-ch & fbruggem";
+__attribute__((section(".text"))) volatile static char signatur[] = "Pestilence | abied-ch & fbruggem";
 __attribute__((section(".text"))) volatile static char path_self[] = "/proc/self/exe";
 __attribute__((section(".text"))) volatile static char mappings_path[] = "/proc/self/maps";
 __attribute__((section(".text"))) volatile static char slash_proc[] = "/proc/";

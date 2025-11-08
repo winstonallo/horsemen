@@ -1,4 +1,4 @@
-NAME = Famine
+NAME = Pestilence
 
 BUILD_DIR = build
 SRC_DIR = src
@@ -9,7 +9,7 @@ ASM = nasm
 LD = ld
 
 ASM_FLAGS = -f elf64 -g
-LD_FLAGS = -T $(SRC_DIR)/famine.ld
+LD_FLAGS = -T $(SRC_DIR)/pestilence.ld
 
 STRIP_CMD = strip $(NAME)
 
