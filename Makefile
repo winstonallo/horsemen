@@ -1,51 +1,56 @@
-NAME = Famine
+NAME = Pestilence
 
 BUILD_DIR = build
 SRC_DIR = src
 INC_DIR = inc
 
-SRCS = \
-	builder.asm
+CC = gcc
+ASM = nasm
+LD = ld
+
+ASM_FLAGS = -f elf64 -g
+LD_FLAGS = -T $(SRC_DIR)/pestilence.ld
 
 STRIP_CMD = strip $(NAME)
 
+ASM_SRCS = $(SRC_DIR)/builder.asm
+C_SRCS   = $(SRC_DIR)/scaffolding.c $(SRC_DIR)/inject.c
+
+OBJ_BUILDER = $(BUILD_DIR)/builder.o
+BIN_BUILDER = $(BUILD_DIR)/builder
+BIN_SCAFFOLD = $(BUILD_DIR)/scaffolding
+BIN_INJECT = $(BUILD_DIR)/inject
+
 all: $(NAME)
 
-LD = ld
-LD_FLAGS = -T $(SRC_DIR)/famine.ld
+$(NAME): $(BIN_BUILDER) $(BIN_SCAFFOLD) $(BIN_INJECT)
+	$(BIN_INJECT) > /dev/null
+	cp $(BIN_SCAFFOLD) $(NAME)
 
-$(NAME): prepare patient_zero
-	mv ./$(BUILD_DIR)/scaffolding ./Famine
+$(OBJ_BUILDER): $(SRC_DIR)/builder.asm | $(BUILD_DIR)
+	$(ASM) $(ASM_FLAGS) $< -o $@ > /dev/null 2>&1
 
-prepare: builder scaffolding inject
-	./$(BUILD_DIR)/inject
+$(BIN_BUILDER): $(OBJ_BUILDER)
+	$(LD) $< -o $@ $(LD_FLAGS) > /dev/null 2>&1
 
-ASM = nasm
-ASM_FLAGS = -f elf64 -g
+$(BIN_SCAFFOLD): $(SRC_DIR)/scaffolding.c | $(BUILD_DIR)
+	$(CC) $< -o $@ -nostartfiles > /dev/null 2>&1
 
-builder: $(BUILD_DIR) src/builder.asm
-	$(ASM) $(ASM_FLAGS) src/builder.asm -o $(BUILD_DIR)/builder.o
-	$(LD) $(BUILD_DIR)/builder.o -o $(BUILD_DIR)/builder $(LD_FLAGS)
-
-scaffolding: src/scaffolding.c
-	cc src/scaffolding.c  -o $(BUILD_DIR)/scaffolding -nostartfiles
-
-inject: src/inject.c
-	cc src/inject.c -o $(BUILD_DIR)/inject
-
-patient_zero: src/inject.c src/scaffolding.c
-	rm -f $(NAME)
-	cc src/patient_zero.c -o $(NAME)
+$(BIN_INJECT): $(SRC_DIR)/inject.c | $(BUILD_DIR)
+	$(CC) $< -o $@ > /dev/null 2>&1
 
 $(BUILD_DIR):
-	mkdir -p $(BUILD_DIR)/
+	mkdir -p $@
 
 clean:
 	rm -rf $(BUILD_DIR)
 
 fclean: clean
-	rm -f ./Famine
+	rm -f $(NAME)
 
 re: fclean all
 
-.PHONY: all debug clean fclean re
+test: all
+	@./scripts/end_to_end.sh
+
+.PHONY: all clean fclean re

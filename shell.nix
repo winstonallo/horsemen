@@ -12,13 +12,14 @@ pkgs.mkShell {
     xxd
     python3
     clang-tools
-    glibc.dev
     valgrind
+    glibc
+    llvmPackages_21.clang
+    llvmPackages_21.clang-tools
+    gcc
   ];
 
   shellHook = ''
-    export DEV_ENV=1
-
-    #sudo sysctl -w vm.mmap_min_addr=0
+    export PS1="\[\e[0;32m\]\W>\[\e[0m\] "
   '';
 }
