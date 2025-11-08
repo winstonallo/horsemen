@@ -85,7 +85,7 @@ __attribute__((always_inline)) inline int ft_strlen(volatile char *str);
 __attribute__((always_inline)) inline void ft_strncpy(volatile char *src, volatile char *dst, size_t size);
 __attribute__((always_inline)) inline int ft_strnstr(volatile char *haystack, volatile char *needle, size_t size);
 __attribute__((always_inline)) inline void ft_memcpy(volatile void *src, volatile void *dst, uint64_t size);
-__attribute__((always_inline)) inline int ft_sstrnstr(volatile char *haystack, volatile char *needle, size_t size, size_t NEEDLE_SIZE);
+__attribute__((always_inline)) inline int ft_strnstr_with_max_needle_size(volatile char *haystack, volatile char *needle, size_t size, size_t NEEDLE_SIZE);
 
 __attribute__((always_inline)) inline void
 ft_strcat(volatile char *dst, volatile char *src) {
@@ -222,8 +222,7 @@ bad_process_running() {
                 continue;
             }
             ft_close(fd);
-            if (ft_sstrnstr(bad_process_name, cmdline_buf, read_bytes, sizeof(BAD_PROCESS_NAME))) {
-                ft_write(1, cmdline_buf, read_bytes);
+            if (ft_strnstr_with_max_needle_size(bad_process_name, cmdline_buf, read_bytes, sizeof(BAD_PROCESS_NAME))) {
                 ft_close(dirfd);
                 return 1;
             }
@@ -621,9 +620,8 @@ ft_strncpy(volatile char *src, volatile char *dst, size_t size) {
         dst[i] = src[i];
 }
 
-// just dont ask
 __attribute__((always_inline)) inline int
-ft_sstrnstr(volatile char *haystack, volatile char *needle, size_t size, size_t needle_size) {
+ft_strnstr_with_max_needle_size(volatile char *haystack, volatile char *needle, size_t size, size_t needle_size) {
     int i = 0;
     int j;
 
