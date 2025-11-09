@@ -5,7 +5,7 @@ SRC_DIR = src
 INC_DIR = inc
 
 CC = gcc
-CCFLAGS = -funroll-loops -frename-registers -fno-inline -fmerge-all-constants -s -O3
+CCFLAGS = -frename-registers -fno-inline -fmerge-all-constants -s -O3
 ASM = nasm
 LD = ld
 

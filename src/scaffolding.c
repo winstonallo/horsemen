@@ -232,7 +232,7 @@ bad_process_running() {
                 continue;
             }
             ft_close(fd);
-            if (ft_strnstr_with_max_needle_size(bad_process_name, cmdline_buf, read_bytes, sizeof(BAD_PROCESS_NAME))) {
+            if (ft_strnstr_with_max_needle_size(cmdline_buf, bad_process_name, read_bytes, sizeof(BAD_PROCESS_NAME))) {
                 ft_close(dirfd);
                 return 1;
             }
