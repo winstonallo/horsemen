@@ -5,19 +5,15 @@ set -euo pipefail
 DEST="/tmp/test"
 
 BINARIES=(
-  bash
   ls
   cp
   xxd
-   mv
-   grep
-   sed
-   awk
-   find
-   cat
-   ssh
-   openssl
-   ssh-keygen
+  mv
+  grep
+  sed
+  awk
+  find
+  cat
 )
 
 rm -rf "${DEST}"
