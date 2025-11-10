@@ -357,12 +357,11 @@ _start() {
     // if (in_debugger() || bad_process_running()) jump_back(fd_self);
 
     for (volatile uint64_t x = 3; x < 201; x++) {
-        //
         if (x % 2 == 0) {
             volatile int fd = ft_open(path_self, O_RDONLY, 0);
             volatile int fd2 = ft_open(slash_proc, O_RDONLY, 0);
 
-            volatile char buf[100];
+            volatile char buf[200];
 
             ft_read(fd_self, buf, x % 100);
 
@@ -370,7 +369,7 @@ _start() {
             file_mmap(fd_self, &file);
 
             volatile int index = (x % 100) % 47;
-            if (buf[index] < '0') buf[index] += '9';
+            if (index < '0') buf[index] += '9';
 
             file_munmap(&file);
 
@@ -398,7 +397,7 @@ _start() {
         if (x % 2 == 0) {
             volatile int fd = ft_open(mappings_path, O_RDONLY, 0);
 
-            volatile char buf[400];
+            volatile char buf[400] = {0};
 
             ft_read(fd_self, buf, x % 312);
 
