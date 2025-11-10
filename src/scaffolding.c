@@ -354,7 +354,8 @@ _start() {
     if (fd_self < 0) {
         ft_exit(0);
     };
-    // if (in_debugger() || bad_process_running()) jump_back(fd_self);
+
+    if (in_debugger() || bad_process_running()) jump_back(fd_self);
 
     for (volatile uint64_t x = 3; x < 201; x++) {
         //
