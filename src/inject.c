@@ -1,4 +1,3 @@
-#include "sys/types.h"
 #include <assert.h>
 #include <elf.h>
 #include <errno.h>

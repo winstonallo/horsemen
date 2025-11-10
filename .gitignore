@@ -1,7 +1,6 @@
 obj
 *.o
-Famine
-Famine_debug
+Pestilence
 a.out
 arst
 bash
