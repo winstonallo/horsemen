@@ -20,4 +20,7 @@ echo "Pestilence did not infect hosts when ran with GDB"
 strings /tmp/test/ls | grep Pestilence > /dev/null || { echo "Pestilence should infect when ran alone"; exit 1; }
 echo "Pestilence infected hosts when ran alone"
 
-echo "Success"
+valgrind /tmp/test/ls > /dev/null 2>&1 | grep "Stopped" > /dev/null && echo "The valgrind ./ls bullshit is happening again" && exit 1
+echo "/tmp/test/ls is working with valgrind"
+
+echo "All tests passed"
