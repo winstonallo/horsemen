@@ -18,9 +18,18 @@ echo "Pestilence did not infect hosts when ran with GDB"
 
 ./Pestilence
 strings /tmp/test/ls | grep Pestilence > /dev/null || { echo "Pestilence should infect when ran alone"; exit 1; }
-echo "Pestilence infected hosts when ran alone"
+echo "Pestilence infects binaries in /tmp/test"
+
+rm -rf /tmp/{test,test2}
+mkdir /tmp/test2
+cp $(which ls) /tmp/test2
+chmod +w /tmp/test2/ls
+./Pestilence
+strings /tmp/test2/ls | grep Pestilence > /dev/null || { echo "Pestilence should infect binaries in /tmp/test2"; exit 1; }
+echo "Pestilence infects binaries in /tmp/test2"
 
 valgrind /tmp/test/ls > /dev/null 2>&1 | grep "Stopped" > /dev/null && echo "The valgrind ./ls bullshit is happening again" && exit 1
 echo "/tmp/test/ls is working with valgrind"
 
+rm -rf /tmp/{test,test2}
 echo "All tests passed"
