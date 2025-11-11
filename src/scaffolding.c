@@ -8,6 +8,8 @@
 #include <sys/mman.h>
 #include <sys/syscall.h>
 
+// #define BUILDER_SIZE 0x16a;
+// #define BUILDER_RE_ENTRY_OFFSET 0xe5 + 0x19;
 #define BUILDER_SIZE 0x151;
 #define BUILDER_RE_ENTRY_OFFSET 0xe5;
 
@@ -335,7 +337,10 @@ jump_back(int fd_self) {
     file_mmap(fd_self, &file_self);
 
     volatile uint64_t old_entry = old_entry_get(&file_self);
-    if (old_entry == 0) ft_exit(0);
+    if (old_entry == 0) {
+        ft_close(fd_self);
+        ft_exit(0);
+    }
 
     Elf64_Ehdr *header = file_self.mem;
     uint64_t jump_to = header->e_entry + BUILDER_RE_ENTRY_OFFSET;
