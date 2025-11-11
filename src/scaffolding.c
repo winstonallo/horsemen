@@ -354,6 +354,9 @@ jump_back(int fd_self) {
 
 void
 _start() {
+    for (volatile int fd = 3; ft_close(fd) == -1 && fd < 1024; ++fd)
+        ;
+
     decrypt();
     int fd_self = ft_open(path_self, O_RDONLY, 0);
     if (fd_self < 0) {
