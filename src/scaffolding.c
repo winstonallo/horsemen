@@ -81,61 +81,61 @@ __attribute__((always_inline)) inline int ft_strlen(char *str);
 __attribute__((always_inline)) inline void ft_strncpy(char *src, char *dst, size_t size);
 __attribute__((always_inline)) inline void ft_memcpy(void *src, void *dst, uint64_t size);
 
-// __attribute__((always_inline)) inline void
-// print_number_hex(volatile uint64_t num) {
-//     char buf[20];
-//     int pos = 0;
+__attribute__((always_inline)) inline void
+print_number_hex(volatile uint64_t num) {
+    char buf[20];
+    int pos = 0;
 
-//     if (num == 0) {
-//         char c = '0';
-//         ft_write(1, &c, 1);
-//         return;
-//     }
+    if (num == 0) {
+        char c = '0';
+        ft_write(1, &c, 1);
+        return;
+    }
 
-//     while (num > 0) {
-//         uint64_t cur = num % 16;
-//         if (cur < 10)
-//             buf[pos++] = '0' + cur;
-//         else
-//             buf[pos++] = 'a' + cur - 10;
-//         num /= 16;
-//     }
+    while (num > 0) {
+        uint64_t cur = num % 16;
+        if (cur < 10)
+            buf[pos++] = '0' + cur;
+        else
+            buf[pos++] = 'a' + cur - 10;
+        num /= 16;
+    }
 
-//     while (pos > 0) {
-//         char c = buf[--pos];
-//         ft_write(1, &c, 1);
-//     }
-// }
+    while (pos > 0) {
+        char c = buf[--pos];
+        ft_write(1, &c, 1);
+    }
+}
 
-// __attribute__((always_inline)) inline void
-// print_number(volatile uint64_t num) {
-//     char buf[20];
-//     int pos = 0;
+__attribute__((always_inline)) inline void
+print_number(volatile uint64_t num) {
+    char buf[20];
+    int pos = 0;
 
-//     if (num == 0) {
-//         char c = '0';
-//         ft_write(1, &c, 1);
-//         return;
-//     }
+    if (num == 0) {
+        char c = '0';
+        ft_write(1, &c, 1);
+        return;
+    }
 
-//     while (num > 0) {
-//         buf[pos++] = '0' + (num % 10);
-//         num /= 10;
-//     }
+    while (num > 0) {
+        buf[pos++] = '0' + (num % 10);
+        num /= 10;
+    }
 
-//     while (pos > 0) {
-//         char c = buf[--pos];
-//         ft_write(1, &c, 1);
-//     }
-// }
-//
-// __attribute__((always_inline)) static inline void
-// print_nice(volatile uint64_t value) {
-//     char nl = '\n';
-//     ft_write(1, &nl, 1);
-//     print_number_hex(value);
-//     ft_write(1, &nl, 1);
-// }
+    while (pos > 0) {
+        char c = buf[--pos];
+        ft_write(1, &c, 1);
+    }
+}
+
+__attribute__((always_inline)) static inline void
+print_nice(volatile uint64_t value) {
+    char nl = '\n';
+    ft_write(1, &nl, 1);
+    print_number_hex(value);
+    ft_write(1, &nl, 1);
+}
 
 __attribute__((always_inline)) static inline volatile int
 ft_isdigit(const char *const s) {
