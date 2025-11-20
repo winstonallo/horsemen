@@ -18,19 +18,24 @@ The segments in ELF binaries are page-aligned, therefore the executable space av
 
 Horsemen uses a two-stage approach designed to fit into very small code caves while still enabling complex behavior.
 
-### Builder (Stage 1: bootstrapping)
-A minimal (~200 bytes) stub placed in the available code cave.
+### Builder (Bootstrap Stub)
+A minimal (~200 bytes) stub that fits comfortably within typical code caves.
 
 Responsibilities:
-* Reference a table describing small code fragments distributed throughout the binary
-* Allocate executable memory at runtime
-* Reassemble those fragments into a contiguous buffer
-* Transfer execution to the reconstructed logic
+1. Reads a fragment table embedded elsewhere in the binary
+2. Allocates executable memory at runtime using system calls
+3. Copies and reassembles scattered code fragments into contiguous memory
+4. Transfers execution to the reconstructed payload
 
-This shows how tiny stubs can bootstrap larger components.
+This shows how a tiny footprint can orchestrate larger functionality by treating the binary itself as distributed storage.
 
 ### Scaffolding (Stage 2: full logic)
-Once stitched together in memory by [the Builder](#builder-stage-1-bootstrapping), Stage 2 represents the full logic of the proof of concept. 
+The full program logic, reassembled in memory by [the Builder](#builder-bootstrap-stub).
+
+In this POC, this is used to:
+* Inspect ELF metadata
+* Validate structural properties
+* Demonstrate self-propagation by instrumenting the host binary
 
 ## Configuring GDB
 
