@@ -5,15 +5,12 @@ set -euo pipefail
 DEST="/tmp/test"
 
 BINARIES=(
-  ls
-  cp
-  xxd
-  mv
-  grep
-  sed
-  awk
-  find
-  cat
+  ls # non-infectable
+  cat # non-infectable
+  sed # infectable
+  awk # infectable
+  find # infectable
+  grep # infectable
 )
 
 rm -rf "${DEST}"

@@ -4,7 +4,7 @@ BUILD_DIR = build
 SRC_DIR = src
 INC_DIR = inc
 
-CC = gcc
+CC = gcc -Os
 ASM = nasm
 LD = ld
 

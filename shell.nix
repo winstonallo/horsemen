@@ -2,7 +2,7 @@ let
  pkgs = import (builtins.fetchTarball {
     url = "https://github.com/NixOS/nixpkgs/archive/6faeb062ee4cf4f105989d490831713cc5a43ee1.tar.gz";
   }) {};
-in 
+in
 pkgs.mkShell {
   name = "dev-shell";
 
@@ -16,6 +16,7 @@ pkgs.mkShell {
     clang-tools
     glibc.dev
     valgrind
+    clamav
   ];
 
   shellHook = ''
